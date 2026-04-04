@@ -32,8 +32,9 @@ Currently not supported:
 There are hundreds of clones of the sites above, you can read about them on [this site](https://adultwebcam.site/clone-sites-by-platform/).
 
 ## Requirements
-* Python 3
-  * Install packages listed in requirements.txt with pip.
+* Python 3.12+
+  * [uv](https://docs.astral.sh/uv/) recommended: `uv sync` (creates `.venv` from `pyproject.toml` / `uv.lock`). Run the app with `uv run python Downloader.py`.
+  * Or use another PEP 621–aware installer with the same dependency list.
 * FFmpeg
 
 ## Usage
@@ -47,8 +48,9 @@ The application has the following interfaces:
 Start the downloader (it does not fork yet)\
 Automatically imports all streamers from the config file.
 ```
-python3 Downloader.py
+uv run python Downloader.py
 ```
+(or activate `.venv` and run `python Downloader.py` after `uv sync`)
 
 On the console you can use the following commands:
 ```

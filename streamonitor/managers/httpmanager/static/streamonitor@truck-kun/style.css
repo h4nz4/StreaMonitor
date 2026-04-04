@@ -605,6 +605,24 @@ a {
         background-color: #2F2F2F;
     }
 
+    td.streamer-container {
+        vertical-align: top;
+    }
+
+    .streamer-web-extra {
+        margin-top: 0.25rem;
+        font-size: 0.72rem;
+        line-height: 1.2;
+        color: #9e9e9e;
+        max-width: 16rem;
+    }
+
+    .streamer-web-extra-line {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
     .streamer-link {
         .mobile-link-text {
             display: none;
@@ -684,6 +702,8 @@ a {
         .streamer-container {
             grid-area: streamer;
             display: flex;
+            flex-direction: column;
+            align-items: center;
             font-size: 1.5rem;
             background-color: #0a202f;
     
@@ -697,6 +717,12 @@ a {
                 &:visited {
                     color: #BDBDBD;
                 }
+            }
+
+            .streamer-web-extra {
+                font-size: 0.6rem;
+                max-width: 100%;
+                text-align: center;
             }
         }
         .header-running {

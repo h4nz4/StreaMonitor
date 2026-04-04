@@ -33,6 +33,7 @@ class Chaturbate(Bot):
         self.sleep_on_offline = 30
         self.sleep_on_error = 60
         self._proxy_test_logged = False
+        self._cb_listing_meta = {}
 
         if CHB_USER_AGENT:
             self.session.headers["User-Agent"] = CHB_USER_AGENT
@@ -134,7 +135,7 @@ class Chaturbate(Bot):
         self._proxy_test_logged = True
         try:
             r = self.session.get(CHB_PROXY_TEST_URL, timeout=10)
-            self.logger.info(
+            self.logger.debug(
                 "Chaturbate proxy test: proxies=%s user-agent=%s cf_clearance=%s status=%s body=%s",
                 self.session.proxies,
                 self.session.headers.get("User-Agent"),
@@ -143,7 +144,7 @@ class Chaturbate(Bot):
                 r.text[:500],
             )
         except Exception as e:
-            self.logger.info(
+            self.logger.debug(
                 "Chaturbate proxy test failed: proxies=%s user-agent=%s cf_clearance=%s error=%s",
                 self.session.proxies,
                 self.session.headers.get("User-Agent"),
@@ -162,7 +163,7 @@ class Chaturbate(Bot):
                 headers=headers,
                 data=data,
             )
-            self.logger.info(
+            self.logger.debug(
                 "get_edge_hls_url_ajax response: status=%s content-type=%s body=%s",
                 r.status_code,
                 r.headers.get("Content-Type"),
@@ -177,6 +178,41 @@ class Chaturbate(Bot):
 
         self.ratelimit = status == Status.RATELIMIT
         return status
+
+    @staticmethod
+    def _apply_affiliate_listing_meta(streamer, model_data):
+        meta = {}
+        rs = model_data.get("room_subject")
+        if rs:
+            s = str(rs).strip().replace("\n", " ")
+            if len(s) > 160:
+                s = s[:157] + "..."
+            meta["room_subject"] = s
+        if model_data.get("num_users") is not None:
+            meta["num_users"] = str(model_data["num_users"])
+        loc = model_data.get("location")
+        if loc:
+            sl = str(loc).strip()
+            if len(sl) > 60:
+                sl = sl[:57] + "..."
+            meta["location"] = sl
+        tags = model_data.get("tags")
+        if isinstance(tags, list) and tags:
+            meta["tags"] = ", ".join(str(t) for t in tags[:10])
+        streamer._cb_listing_meta = meta
+
+    def web_ui_rows(self):
+        rows = list(super().web_ui_rows())
+        m = getattr(self, "_cb_listing_meta", None) or {}
+        if m.get("room_subject"):
+            rows.append(("Room", m["room_subject"]))
+        if m.get("num_users"):
+            rows.append(("Viewers", m["num_users"]))
+        if m.get("location"):
+            rows.append(("Location", m["location"]))
+        if m.get("tags"):
+            rows.append(("Tags", m["tags"]))
+        return tuple(rows)
 
     @classmethod
     def getStatusBulk(cls, streamers):
@@ -204,7 +240,9 @@ class Chaturbate(Bot):
             model_data = data_map.get(streamer.username.lower())
             if not model_data:
                 streamer.setStatus(Status.OFFLINE)
+                streamer._cb_listing_meta = {}
                 continue
+            cls._apply_affiliate_listing_meta(streamer, model_data)
             if model_data.get("gender"):
                 streamer.gender = cls._GENDER_MAP.get(model_data.get("gender"))
             if model_data.get("country"):

@@ -1,5 +1,6 @@
 import os
 import os.path
+from pathlib import Path
 
 import environ
 
@@ -12,6 +13,11 @@ DOWNLOADS_DIR = env.str("STRMNTR_DOWNLOAD_DIR", "downloads")
 # Path to streamer list JSON. In Docker, bind-mount a directory and set this to a file inside it
 # (e.g. STRMNTR_CONFIG=/app/data/config.json); mounting a single missing file becomes a directory.
 CONFIG_PATH = env.str("STRMNTR_CONFIG", "config.json")
+_default_sqlite_path = Path(CONFIG_PATH).expanduser().resolve().parent / "streamonitor.db"
+DATABASE_URL = env.str(
+    "STRMNTR_DATABASE_URL",
+    f"sqlite:///{_default_sqlite_path.as_posix()}",
+)
 MIN_FREE_DISK_PERCENT = env.float("STRMNTR_MIN_FREE_SPACE", 5.0)  # in %
 DEBUG = env.bool("STRMNTR_DEBUG", False)
 

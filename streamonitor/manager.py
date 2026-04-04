@@ -7,6 +7,7 @@ from terminaltables import AsciiTable
 import streamonitor.config as config
 import streamonitor.log as log
 from streamonitor.bot import Bot, LOADED_SITES
+from streamonitor.db import sync_streamers_from_bots
 from streamonitor.managers.outofspace_detector import OOSDetector
 
 from streamonitor.enums import Status
@@ -51,6 +52,7 @@ class Manager(Thread):
 
     def saveConfig(self):
         config.save_config([s.export() for s in self.streamers])
+        sync_streamers_from_bots(self.streamers)
 
     def do_add(self, streamer, username, site):
         if streamer:

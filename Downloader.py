@@ -1,6 +1,7 @@
 import os
 import sys
 import streamonitor.config as config
+from streamonitor.db import init_database, sync_streamers_from_bots
 from streamonitor.managers.bulk_status_manager import BulkStatusManager
 from streamonitor.managers.httpmanager import HTTPManager
 from streamonitor.managers.climanager import CLIManager
@@ -23,7 +24,9 @@ def main():
         print(OOSDetector.under_threshold_message)
         sys.exit(1)
 
+    init_database()
     streamers = config.loadStreamers()
+    sync_streamers_from_bots(streamers)
 
     clean_exit = CleanExit(streamers)
 

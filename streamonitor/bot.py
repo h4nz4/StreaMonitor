@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import os
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from threading import Thread
 from time import sleep
@@ -23,10 +23,27 @@ from parameters import (
     WANTED_RESOLUTION_PREFERENCE,
 )
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
+from streamonitor.db import record_status_event, recording_finished, recording_started
 from streamonitor.enums import COUNTRIES, GENDER_DATA, Gender, Status
 from streamonitor.models import VideoData
 
 LOADED_SITES = set()
+
+
+def _parse_iso_datetime(value):
+    if value is None or value is False or value == "":
+        return None
+    if isinstance(value, datetime):
+        dt = value
+        return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+    try:
+        s = str(value).strip().replace("Z", "+00:00")
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except ValueError:
+        return None
 
 
 class Bot(Thread):
@@ -92,6 +109,9 @@ class Bot(Thread):
 
         self.gender = None
         self.country = None
+        self.last_seen_online_at = None
+        self.last_recording_ended_at = None
+        self._last_db_status_key = None
         self.url = self.getWebsiteURL()
 
     def setUsername(self, username):
@@ -252,19 +272,36 @@ class Bot(Thread):
                             self.log("Started downloading show")
                             self.recording = True
                             file = self.genOutFilename()
+                            rec_id = recording_started(self, file)
+                            ret = False
                             try:
                                 ret = self.getVideo(self, video_url, file)
                             except Exception as e:
                                 self.logger.exception(e)
-                                ret = False
-                            if not ret:
+                                recording_finished(
+                                    rec_id,
+                                    completed=False,
+                                    error_message=str(e),
+                                    abs_path=file,
+                                )
                                 self.log("Recording ended with error")
                                 self.sc = Status.ERROR
                                 self.log(self.status())
+                                self.recording = False
                                 self._sleep(self.sleep_on_error)
                                 continue
+                            if not ret:
+                                recording_finished(rec_id, completed=False, abs_path=file)
+                                self.log("Recording ended with error")
+                                self.sc = Status.ERROR
+                                self.log(self.status())
+                                self.recording = False
+                                self._sleep(self.sleep_on_error)
+                                continue
+                            recording_finished(rec_id, completed=True, abs_path=file)
                             self.recording = False
                             self.log("Recording ended")
+                            self.last_recording_ended_at = datetime.now(timezone.utc)
                             try:
                                 self.cache_file_list()
                             except Exception as e:
@@ -280,6 +317,8 @@ class Bot(Thread):
                     self._sleep(self.sleep_on_error)
                     continue
 
+                self._db_record_status_if_changed()
+                self._touch_seen_online_if_live()
                 if self.quitting:
                     break
                 elif self.bulk_update:
@@ -300,6 +339,25 @@ class Bot(Thread):
         if self.sc == Status.LONG_OFFLINE and sc == Status.OFFLINE:
             return
         self.sc = sc
+        self._touch_seen_online_if_live()
+
+    def _db_record_status_if_changed(self):
+        key = (int(self.sc.value), bool(self.recording))
+        if key == self._last_db_status_key:
+            return
+        self._last_db_status_key = key
+        record_status_event(self)
+
+    def _touch_seen_online_if_live(self):
+        if self.sc in (Status.PUBLIC, Status.PRIVATE, Status.RESTRICTED):
+            self.last_seen_online_at = datetime.now(timezone.utc)
+
+    def _format_activity_timestamp(self, dt):
+        if not dt:
+            return ""
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone().strftime("%Y-%m-%d %H:%M")
 
     def getPlaylistVariants(self, url=None, m3u_data=None):
         sources = []
@@ -427,12 +485,32 @@ class Bot(Thread):
         filename = os.path.join(folder, f"{self.username}-{timestamp}.{CONTAINER}")
         return filename
 
+    def web_ui_rows(self):
+        """Optional (label, value) pairs for web list/cards; sites may override."""
+        rows = []
+        if self.last_seen_online_at:
+            rows.append(
+                ("Last online", self._format_activity_timestamp(self.last_seen_online_at))
+            )
+        if self.last_recording_ended_at:
+            rows.append(
+                (
+                    "Last recording",
+                    self._format_activity_timestamp(self.last_recording_ended_at),
+                )
+            )
+        return tuple(rows)
+
     @classmethod
     def fromConfig(cls, data):
         instance = cls(username=data["username"])
         instance.running = data.get("running", True)
         instance.country = data.get("country")
         instance.gender = data.get("gender")
+        instance.last_seen_online_at = _parse_iso_datetime(data.get("last_seen_online_at"))
+        instance.last_recording_ended_at = _parse_iso_datetime(
+            data.get("last_recording_ended_at")
+        )
         return instance
 
     def export(self):
@@ -444,6 +522,12 @@ class Bot(Thread):
             "gender": self.gender.value
             if isinstance(self.gender, Enum)
             else self.gender,
+            "last_seen_online_at": self.last_seen_online_at.isoformat()
+            if self.last_seen_online_at
+            else None,
+            "last_recording_ended_at": self.last_recording_ended_at.isoformat()
+            if self.last_recording_ended_at
+            else None,
         }
 
     @staticmethod
@@ -504,6 +588,10 @@ class RoomIdBot(Bot):
     def fromConfig(cls, data):
         instance = cls(username=data["username"], room_id=data.get("room_id"))
         instance.running = data.get("running", True)
+        instance.last_seen_online_at = _parse_iso_datetime(data.get("last_seen_online_at"))
+        instance.last_recording_ended_at = _parse_iso_datetime(
+            data.get("last_recording_ended_at")
+        )
         return instance
 
     def export(self):

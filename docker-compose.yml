@@ -26,6 +26,8 @@ services:
       STRMNTR_LIST_FREQ: "30"
       # File inside mounted dir — avoids Docker turning a missing bind-mount file into a directory
       STRMNTR_CONFIG: "/app/data/config.json"
+      # SQLite (default path matches CONFIG parent dir). For PostgreSQL use e.g. postgresql+psycopg://user:pass@postgres:5432/streamonitor
+      STRMNTR_DATABASE_URL: "sqlite:////app/data/streamonitor.db"
     volumes:
       - ./downloads:/app/downloads
       # Host: streamonitor-data/config.json — copy from ./config.json when migrating

@@ -1,0 +1,26 @@
+[project]
+name = "streamonitor"
+version = "0.1.0"
+description = "Monitor and record live streams from multiple cam sites"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "requests",
+    "SQLAlchemy>=2.0",
+    "psycopg[binary]>=3.1",
+    "terminaltables",
+    "pyzmq",
+    "flask",
+    "termcolor",
+    "beautifulsoup4",
+    "websocket-client",
+    "ffmpy",
+    "m3u8",
+    "fake-useragent",
+    "django-environ",
+    "pycurl",
+    "pycurl-requests",
+]
+
+[tool.uv]
+package = false
