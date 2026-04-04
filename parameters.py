@@ -18,37 +18,6 @@ HTTP_USER_AGENT = env.str(
     "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0",
 )
 
-# Optional Chaturbate diagnostics / Cloudflare clearance support
-# Set a URL that will be fetched through the same session to verify proxy egress IP
-CHB_PROXY_TEST_URL = env.str(
-    "STRMNTR_CB_PROXY_TEST_URL",
-    "https://api.ipify.org?format=json",
-).strip()
-# Optional Cloudflare clearance cookie value for Chaturbate
-CHB_CF_CLEARANCE = env.str("STRMNTR_CB_CF_CLEARANCE", "").strip()
-# Optional Chaturbate-specific User-Agent override. If unset, HTTP_USER_AGENT is used.
-CHB_USER_AGENT = env.str("STRMNTR_CB_USER_AGENT", "").strip()
-
-# Optional proxy configuration for HTTP and HTTPS requests.
-# Example:
-# STRMNTR_HTTP_PROXY=http://127.0.0.1:8080
-REQUESTS_HTTP_PROXY = env.str("STRMNTR_HTTP_PROXY", "").strip()
-REQUESTS_NO_PROXY = env.str("STRMNTR_NO_PROXY", "").strip()
-
-REQUESTS_PROXIES = {}
-if REQUESTS_HTTP_PROXY:
-    REQUESTS_PROXIES["http"] = REQUESTS_HTTP_PROXY
-    REQUESTS_PROXIES["https"] = REQUESTS_HTTP_PROXY
-
-if REQUESTS_HTTP_PROXY:
-    os.environ["HTTP_PROXY"] = REQUESTS_HTTP_PROXY
-    os.environ["http_proxy"] = REQUESTS_HTTP_PROXY
-    os.environ["HTTPS_PROXY"] = REQUESTS_HTTP_PROXY
-    os.environ["https_proxy"] = REQUESTS_HTTP_PROXY
-if REQUESTS_NO_PROXY:
-    os.environ["NO_PROXY"] = REQUESTS_NO_PROXY
-    os.environ["no_proxy"] = REQUESTS_NO_PROXY
-
 # Specify the full path to the ffmpeg binary. By default, ffmpeg found on PATH is used.
 FFMPEG_PATH = env.str("STRMNTR_FFMPEG_PATH", "ffmpeg")
 
