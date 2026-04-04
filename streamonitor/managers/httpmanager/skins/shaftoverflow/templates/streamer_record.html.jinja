@@ -44,14 +44,14 @@
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item" href="/recordings/{{ streamer.username }}/{{ streamer.site }}">
+                        <a class="dropdown-item" href="/recordings?{{ streamer_qs(streamer.username, streamer.site) }}">
                             <i class="bi bi-folder me-2"></i>View Recordings
                         </a>
                     </li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <button class="dropdown-item {% if streamer.running and streamer.recording %}text-danger{% elif streamer.running %}text-warning{% else %}text-success{% endif %}"
-                            hx-patch="/toggle/{{ streamer.username }}/{{ streamer.site }}"
+                            hx-patch="/toggle?{{ streamer_qs(streamer.username, streamer.site) }}"
                             hx-trigger="click"
                             hx-target="closest .streamer-card"
                             hx-sync="closest .streamer-card:replace"
@@ -68,7 +68,7 @@
                     </li>
                     <li>
                         <button class="dropdown-item text-info"
-                            hx-get="/streamer-info/{{ streamer.username }}/{{ streamer.site }}"
+                            hx-get="/streamer-info?{{ streamer_qs(streamer.username, streamer.site) }}"
                             hx-trigger="click"
                             hx-target="closest .streamer-card"
                             hx-sync="closest .streamer-card:replace"
@@ -80,7 +80,7 @@
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <button class="dropdown-item text-danger"
-                            hx-delete="/remove/{{ streamer.username }}/{{ streamer.site }}"
+                            hx-delete="/remove?{{ streamer_qs(streamer.username, streamer.site) }}"
                             hx-trigger="click"
                             hx-target="closest .col-lg-4"
                             hx-sync="closest .col-lg-4:replace"

@@ -623,6 +623,10 @@ a {
         white-space: nowrap;
     }
 
+    .streamer-last-recording-mobile {
+        display: none;
+    }
+
     .streamer-link {
         .mobile-link-text {
             display: none;
@@ -778,6 +782,15 @@ a {
         td.streamer-disk-usage {
             grid-area: trash;
             text-align: end;
+        }
+
+        .header-last-recording-ended-at,
+        td.streamer-last-recording {
+            display: none;
+        }
+
+        .streamer-last-recording-mobile {
+            display: block;
         }
     }
 }

@@ -14,12 +14,12 @@ from streamonitor.bot import Bot, LOADED_SITES
 from streamonitor.enums import Status
 from streamonitor.manager import Manager
 from streamonitor.managers.outofspace_detector import OOSDetector
-from streamonitor.utils import human_file_size
+from streamonitor.utils import human_file_size, recordings_browser_path, streamer_qs
 
 from .filters import status_icon, status_text
 from .mappers import web_status_lookup
 from .models import InvalidStreamer
-from .utils import confirm_deletes, streamer_list, get_recording_query_params, get_streamer_context, set_streamer_list_cookies, \
+from .utils import confirm_deletes, streamer_list, get_streamer_context, set_streamer_list_cookies, \
     streamer_status_changed
 
 
@@ -47,6 +47,7 @@ class HTTPManager(Manager):
 
         app.add_template_filter(human_file_size, name='tohumanfilesize')
         app.add_template_filter(status_icon, name='status_icon_class')
+        app.template_global()(streamer_qs)
         app.add_template_filter(status_text, name='status_text')
 
         def check_auth(username, password):
@@ -147,9 +148,15 @@ class HTTPManager(Manager):
             set_streamer_list_cookies(filter_context, request, response)
             return response
 
+        @app.route('/recordings', methods=['GET'])
         @app.route('/recordings/<user>/<site>', methods=['GET'])
         @login_required
-        def recordings(user, site):
+        def recordings(user=None, site=None):
+            if user is None or site is None:
+                user = request.args.get("username")
+                site = request.args.get("site")
+            if not user or not site:
+                return ("Bad request", 400)
             video = request.args.get("play_video")
             sort_by_size = bool(request.args.get("sorted", False))
             streamer = cast(Union[Bot, None], self.getStreamer(user, site))
@@ -164,42 +171,71 @@ class HTTPManager(Manager):
                 context['video_to_play'] = next(islice(context['videos'].values(), 0, 1))
             return render_template('recordings.html.jinja', **context), status_code
 
+        @app.route('/video', methods=['GET'])
         @app.route('/video/<user>/<site>/<path:filename>', methods=['GET'])
-        def get_video(user, site, filename):
+        def get_video(user=None, site=None, filename=None):
+            if filename is None:
+                user = request.args.get("username")
+                site = request.args.get("site")
+                filename = request.args.get("filename")
+            if not user or not site or not filename:
+                return ("Bad request", 400)
             streamer = cast(Union[Bot, None], self.getStreamer(user, site))
             return send_from_directory(
                 os.path.abspath(streamer.outputFolder),
                 filename
             )
 
+        @app.route('/videos/watch', methods=['GET'])
         @app.route('/videos/watch/<user>/<site>/<path:play_video>', methods=['GET'])
         @login_required
-        def watch_video(user, site, play_video):
+        def watch_video(user=None, site=None, play_video=None):
+            if play_video is None:
+                user = request.args.get("username")
+                site = request.args.get("site")
+                play_video = request.args.get("play_video")
+            if not user or not site or not play_video:
+                return ("Bad request", 400)
             sort_by_size = bool(request.args.get("sorted", False))
             streamer = cast(Union[Bot, None], self.getStreamer(user, site))
             context = get_streamer_context(streamer, sort_by_size, play_video, request.headers.get('User-Agent'))
             status_code = 500 if context['video_to_play'] is None or context['has_error'] else 200
             response = make_response(render_template('recordings_content.html.jinja', **context), status_code)
-            query_param = get_recording_query_params(sort_by_size, play_video)
-            response.headers['HX-Replace-Url'] = f"/recordings/{user}/{site}{query_param}"
+            response.headers['HX-Replace-Url'] = recordings_browser_path(
+                user, site, sort_by_size=sort_by_size, play_video=play_video
+            )
             return response
 
+        @app.route('/videos', methods=['GET'])
         @app.route('/videos/<user>/<site>', methods=['GET'])
         @login_required
-        def sort_videos(user, site):
+        def sort_videos(user=None, site=None):
+            if user is None or site is None:
+                user = request.args.get("username")
+                site = request.args.get("site")
+            if not user or not site:
+                return ("Bad request", 400)
             streamer = cast(Union[Bot, None], self.getStreamer(user, site))
             sort_by_size = bool(request.args.get("sorted", False))
             play_video = request.args.get("play_video", None)
             context = get_streamer_context(streamer, sort_by_size, play_video, request.headers.get('User-Agent'))
             status_code = 500 if context['has_error'] else 200
             response = make_response(render_template('video_list.html.jinja', **context), status_code)
-            query_param = get_recording_query_params(sort_by_size, play_video)
-            response.headers['HX-Replace-Url'] = f"/recordings/{user}/{site}{query_param}"
+            response.headers['HX-Replace-Url'] = recordings_browser_path(
+                user, site, sort_by_size=sort_by_size, play_video=play_video
+            )
             return response
 
+        @app.route('/videos', methods=['DELETE'])
         @app.route('/videos/<user>/<site>/<path:filename>', methods=['DELETE'])
         @login_required
-        def delete_video(user, site, filename):
+        def delete_video(user=None, site=None, filename=None):
+            if filename is None:
+                user = request.args.get("username")
+                site = request.args.get("site")
+                filename = request.args.get("filename")
+            if not user or not site or not filename:
+                return ("Bad request", 400)
             streamer = cast(Union[Bot, None], self.getStreamer(user, site))
             sort_by_size = bool(request.args.get("sorted", False))
             play_video = request.args.get("play_video", None)
@@ -223,8 +259,9 @@ class HTTPManager(Manager):
                 context['has_error'] = True
                 context['recordings_error_message'] = f'Could not find {filename}, so no file removed'
             response = make_response(render_template('video_list.html.jinja', **context), status_code)
-            query_param = get_recording_query_params(sort_by_size, play_video)
-            response.headers['HX-Replace-Url'] = f"/recordings/{user}/{site}{query_param}"
+            response.headers['HX-Replace-Url'] = recordings_browser_path(
+                user, site, sort_by_size=sort_by_size, play_video=play_video
+            )
             return response
 
         @app.route("/add", methods=['POST'])
@@ -252,9 +289,15 @@ class HTTPManager(Manager):
             } | filter_context
             return render_template('streamers_result.html.jinja', **context), status_code
 
+        @app.route("/recording/nav", methods=['GET'])
         @app.route("/recording/nav/<user>/<site>", methods=['GET'])
         @login_required
-        def get_streamer_navbar(user, site):
+        def get_streamer_navbar(user=None, site=None):
+            if user is None or site is None:
+                user = request.args.get("username")
+                site = request.args.get("site")
+            if not user or not site:
+                return ("Bad request", 400)
             streamer = self.getStreamer(user, site)
             sort_by_size = bool(request.args.get("sorted", False))
             play_video = request.args.get("play_video", None)
@@ -278,9 +321,15 @@ class HTTPManager(Manager):
             }
             return render_template('streamer_nav_bar.html.jinja', **context), status_code
 
+        @app.route("/streamer-info", methods=['GET'])
         @app.route("/streamer-info/<user>/<site>", methods=['GET'])
         @login_required
-        def get_streamer_info(user, site):
+        def get_streamer_info(user=None, site=None):
+            if user is None or site is None:
+                user = request.args.get("username")
+                site = request.args.get("site")
+            if not user or not site:
+                return ("Bad request", 400)
             streamer = self.getStreamer(user, site)
             res = None
             status_code = 200
@@ -303,9 +352,13 @@ class HTTPManager(Manager):
             }
             return render_template('streamer_record.html.jinja', **context), status_code
 
+        @app.route("/remove", methods=['DELETE'])
         @app.route("/remove/<user>/<site>", methods=['DELETE'])
         @login_required
-        def remove_streamer(user, site):
+        def remove_streamer(user=None, site=None):
+            if user is None or site is None:
+                user = request.args.get("username", "")
+                site = request.args.get("site", "")
             streamer = self.getStreamer(user, site)
             res = self.do_remove(streamer, user, site)
             status_code = 204
@@ -323,9 +376,15 @@ class HTTPManager(Manager):
         def clear_modal():
             return '', 204
 
+        @app.route("/toggle", methods=['PATCH'])
         @app.route("/toggle/<user>/<site>", methods=['PATCH'])
         @login_required
-        def toggle_streamer(user, site):
+        def toggle_streamer(user=None, site=None):
+            if user is None or site is None:
+                user = request.args.get("username")
+                site = request.args.get("site")
+            if not user or not site:
+                return ("Bad request", 400)
             streamer = self.getStreamer(user, site)
             status_code = 500
             res = "Streamer not found"
@@ -347,9 +406,15 @@ class HTTPManager(Manager):
             }
             return render_template('streamer_record.html.jinja', **context), status_code
 
+        @app.route("/toggle/recording", methods=['PATCH'])
         @app.route("/toggle/<user>/<site>/recording", methods=['PATCH'])
         @login_required
-        def toggle_streamer_recording_page(user, site):
+        def toggle_streamer_recording_page(user=None, site=None):
+            if user is None or site is None:
+                user = request.args.get("username")
+                site = request.args.get("site")
+            if not user or not site:
+                return ("Bad request", 400)
             streamer = self.getStreamer(user, site)
             status_code = 500
             res = "Streamer not found"

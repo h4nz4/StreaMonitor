@@ -5,6 +5,7 @@ from termcolor import colored
 import terminaltables.terminal_io
 from terminaltables import AsciiTable
 import streamonitor.config as config
+from streamonitor.utils import normalize_streamer_username
 import streamonitor.log as log
 from streamonitor.bot import Bot, LOADED_SITES
 from streamonitor.db import sync_streamers_from_bots
@@ -55,20 +56,22 @@ class Manager(Thread):
         sync_streamers_from_bots(self.streamers)
 
     def do_add(self, streamer, username, site):
-        if streamer:
-            return 'Streamer already exists'
-        elif username and site:
-            try:
-                streamer = Bot.createInstance(username, site)
-                self.streamers.append(streamer)
-                streamer.start()
-                streamer.restart()
-                self.saveConfig()
-                return "Added [" + streamer.siteslug + "] " + streamer.username
-            except Exception as e:
-                return f"Failed to add: {e}"
-        else:
+        if not username or not site:
             return "Missing value(s)"
+        username = normalize_streamer_username(username, site)
+        if not username:
+            return "Missing value(s)"
+        if self.getStreamer(username, site):
+            return "Streamer already exists"
+        try:
+            streamer = Bot.createInstance(username, site)
+            self.streamers.append(streamer)
+            streamer.start()
+            streamer.restart()
+            self.saveConfig()
+            return "Added [" + streamer.siteslug + "] " + streamer.username
+        except Exception as e:
+            return f"Failed to add: {e}"
 
     def do_remove(self, streamer, username, site):
         if not streamer:

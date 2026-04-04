@@ -52,12 +52,22 @@ def streamer_list(streamers: List[Bot], request):
         filtered = False
 
     allowed_sort_columns = [
-        'site', 'username', 'running', 'status', 'video_files_total_size', 'video_files_count']
+        'site', 'username', 'running', 'status', 'video_files_total_size', 'video_files_count',
+        'last_recording_ended_at']
     if sort_by not in allowed_sort_columns:
         sort_by = None
 
     if sort_by:
-        streamers_list.sort(key=sort_streamers(sort_by), reverse=(sort_dir == 'desc'))
+        if sort_by == 'last_recording_ended_at':
+            with_dt = [b for b in streamers_list if b.last_recording_ended_at]
+            without_dt = [b for b in streamers_list if not b.last_recording_ended_at]
+            with_dt.sort(
+                key=lambda b: b.last_recording_ended_at,
+                reverse=(sort_dir == 'desc'),
+            )
+            streamers_list = with_dt + without_dt
+        else:
+            streamers_list.sort(key=sort_streamers(sort_by), reverse=(sort_dir == 'desc'))
 
     context = {
         'is_filtered': filtered,

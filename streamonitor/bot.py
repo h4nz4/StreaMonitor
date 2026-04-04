@@ -480,14 +480,14 @@ class Bot(Thread):
         filename = os.path.join(folder, f"{self.username}-{timestamp}.{parameters.CONTAINER}")
         return filename
 
-    def web_ui_rows(self):
+    def web_ui_rows(self, include_last_recording=True):
         """Optional (label, value) pairs for web list/cards; sites may override."""
         rows = []
         if self.last_seen_online_at:
             rows.append(
                 ("Last online", self._format_activity_timestamp(self.last_seen_online_at))
             )
-        if self.last_recording_ended_at:
+        if include_last_recording and self.last_recording_ended_at:
             rows.append(
                 (
                     "Last recording",

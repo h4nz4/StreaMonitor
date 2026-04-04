@@ -30,6 +30,7 @@
         {{ sortable_header("site", "Site", "globe", sort_by, sort_dir, username_filter, site_filter, status_filter) }}
         {{ sortable_header("running", "Running", "play-fill", sort_by, sort_dir, username_filter, site_filter, status_filter) }}
         {{ sortable_header("status", "Status", "info-circle", sort_by, sort_dir, username_filter, site_filter, status_filter) }}
+        {{ sortable_header("last_recording_ended_at", "Last recording", "clock-history", sort_by, sort_dir, username_filter, site_filter, status_filter) }}
     </div>
     <div class="text-muted">
         <small>{{ streamers|length }} streamer{{ 's' if streamers|length != 1 else ''}}</small>

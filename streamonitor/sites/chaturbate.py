@@ -194,8 +194,8 @@ class Chaturbate(Bot):
             meta["tags"] = ", ".join(str(t) for t in tags[:10])
         streamer._cb_listing_meta = meta
 
-    def web_ui_rows(self):
-        rows = list(super().web_ui_rows())
+    def web_ui_rows(self, include_last_recording=True):
+        rows = list(super().web_ui_rows(include_last_recording=include_last_recording))
         m = getattr(self, "_cb_listing_meta", None) or {}
         if m.get("room_subject"):
             rows.append(("Room", m["room_subject"]))

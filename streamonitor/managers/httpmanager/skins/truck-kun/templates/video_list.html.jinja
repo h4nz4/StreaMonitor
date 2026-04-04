@@ -7,7 +7,7 @@
     <div class="files-container-header">
         <h3 class="title">Files</h3>
         <button class="sort-action"
-            hx-get="/videos/{{ streamer.username }}/{{ streamer.site }}"
+            hx-get="/videos?{{ streamer_qs(streamer.username, streamer.site) }}"
             hx-trigger="click"
             hx-target="#video-list"
             hx-sync="#video-list:queue last"
@@ -32,15 +32,15 @@
     {% for video in videos.values() %}
         {% set disable_delete = video.filename == video_to_play.filename and videos|length > 1 %}
         <div class="video-ref">
-            <a href="/videos/watch/{{ streamer.username }}/{{ streamer.site }}/{{ video.filename }}"
+            <a href="/videos/watch?{{ streamer_qs(streamer.username, streamer.site, play_video=video.filename) }}"
             class="video-link link-fill"
-            hx-get="/videos/watch/{{ streamer.username }}/{{ streamer.site }}/{{ video.filename }}"
+            hx-get="/videos/watch?{{ streamer_qs(streamer.username, streamer.site, play_video=video.filename) }}"
             hx-trigger="click"
             hx-include=".sorted-context"
             hx-target="#content"
             hx-sync="#video-list:replace"
             hx-swap="innerHTML"><span class="filename">{{ video.shortname }}</span><span class="size">{{ video.human_readable_filesize }}</span></a>
-            <button hx-delete="/videos/{{ streamer.username }}/{{ streamer.site }}/{{ video.filename }}"
+            <button hx-delete="/videos?{{ streamer_qs(streamer.username, streamer.site, filename=video.filename) }}"
                 hx-trigger="click"
                 hx-target="#video-list"
                 hx-sync="#video-list:replace"

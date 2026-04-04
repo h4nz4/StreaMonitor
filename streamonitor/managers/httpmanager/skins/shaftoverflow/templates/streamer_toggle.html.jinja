@@ -1,5 +1,5 @@
 <button id="toggle-streamer" class="btn {{'btn-warning' if streamer.running else 'btn-success'}}" 
-    hx-patch="/toggle/{{ streamer.username }}/{{ streamer.site }}/recording"
+    hx-patch="/toggle/recording?{{ streamer_qs(streamer.username, streamer.site) }}"
     hx-trigger="click"
     hx-target="#toggle-streamer"
     hx-swap="outerHTML"

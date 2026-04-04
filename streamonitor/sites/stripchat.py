@@ -2,7 +2,7 @@ import base64
 import hashlib
 import itertools
 import json
-import os.path
+import os
 import random
 import re
 
@@ -164,6 +164,15 @@ class StripChat(RoomIdBot):
         )
         result = self.session.get(url, headers=self.headers, cookies=self.cookies)
         m3u8_doc = result.content.decode("utf-8")
+        if parameters.DEBUG:
+            out = self.outputFolder
+            os.makedirs(out, exist_ok=True)
+            dbg_path = os.path.join(out, "stripchat_m3u8_last.m3u8")
+            with open(dbg_path, "w", encoding="utf-8") as dbg_f:
+                dbg_f.write(m3u8_doc)
+            self.log(
+                f"[DEBUG] StripChat master m3u8 -> {dbg_path} ({len(m3u8_doc)} bytes)"
+            )
         psch, pkey, pdkey = StripChat._getMouflonFromM3U(m3u8_doc)
         if pdkey is None:
             self.log(f"Failed to get mouflon decryption key")
