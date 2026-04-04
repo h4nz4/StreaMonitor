@@ -1,0 +1,46 @@
+{% extends "layout.html.jinja" %}
+{% block title %}StreaMonitor — Settings{% endblock %}
+{% block content %}
+<div class="title-container">
+    <h1>Settings</h1>
+    <p class="settings-path-note">Primary file: <code>{{ settings_path }}</code>. Optional fallback: <code>{{ config_path }}</code> with shape <code>{"streamers": [...], "settings": {...}}</code> (missing keys are filled from <code>settings</code> until overridden here). Environment variables still win over both (locked fields).</p>
+    <p><a href="/">Back to list</a></p>
+</div>
+{% if message %}
+<div class="settings-toast {% if error %}error{% else %}ok{% endif %}">{{ message }}</div>
+{% endif %}
+<form method="post" action="/settings" class="settings-form">
+    {% for group in setting_groups %}
+    <fieldset class="settings-fieldset">
+        <legend>{{ group.title }}</legend>
+        {% for field in group.fields %}
+        <div class="settings-row">
+            <label for="f-{{ field.key }}">{{ field.label }}{% if field.locked %} <span class="env-locked">(env)</span>{% endif %}</label>
+            {% if field.type == "bool" %}
+            <select id="f-{{ field.key }}" name="{{ field.key }}" {% if field.locked %}disabled{% endif %}>
+                <option value="true" {% if field.value %}selected{% endif %}>Yes</option>
+                <option value="false" {% if not field.value %}selected{% endif %}>No</option>
+            </select>
+            {% elif field.type == "choice" %}
+            <select id="f-{{ field.key }}" name="{{ field.key }}" {% if field.locked %}disabled{% endif %}>
+                {% for c in field.choices %}
+                <option value="{{ c }}" {% if field.value == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+            </select>
+            {% elif field.type == "password" %}
+            <input type="password" id="f-{{ field.key }}" name="{{ field.key }}" autocomplete="new-password" {% if field.locked %}disabled{% endif %} placeholder="{% if field.locked %}Set via STRMNTR_PASSWORD{% else %}New password (leave blank to keep){% endif %}">
+            {% if not field.locked %}
+            <label class="settings-inline"><input type="checkbox" name="WEBSERVER_PASSWORD_CLEAR" value="1"> Remove password (allow anonymous)</label>
+            {% endif %}
+            {% else %}
+            <input id="f-{{ field.key }}" name="{{ field.key }}" value="{{ field.value if field.value is not none else '' }}" {% if field.type == "int" %}inputmode="numeric"{% endif %} {% if field.type == "float" %}inputmode="decimal"{% endif %} {% if field.locked %}disabled{% endif %}>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </fieldset>
+    {% endfor %}
+    <div class="submit-form-container">
+        <button type="submit" class="modify-streamers">Save</button>
+    </div>
+</form>
+{% endblock %}

@@ -1,4 +1,4 @@
-from parameters import VR_FORMAT_SUFFIX
+import parameters
 from streamonitor.enums import Status
 from streamonitor.sites.stripchat import StripChat
 
@@ -21,7 +21,7 @@ class StripChatVR(StripChat):
 
     @property
     def filename_extra_suffix(self):
-        if not VR_FORMAT_SUFFIX:
+        if not parameters.VR_FORMAT_SUFFIX:
             return ''
 
         vr_cam_settings = self.lastInfo['broadcastSettings']['vrCameraSettings']

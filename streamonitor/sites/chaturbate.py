@@ -4,14 +4,7 @@ from urllib.parse import urljoin
 import m3u8
 import requests
 
-from parameters import (
-    CHB_CF_CLEARANCE,
-    CHB_PROXY_TEST_URL,
-    CHB_USER_AGENT,
-    REQUESTS_PROXIES,
-    WANTED_RESOLUTION,
-    WANTED_RESOLUTION_PREFERENCE,
-)
+import parameters
 from streamonitor.bot import Bot
 from streamonitor.enums import Gender, Status
 
@@ -35,13 +28,13 @@ class Chaturbate(Bot):
         self._proxy_test_logged = False
         self._cb_listing_meta = {}
 
-        if CHB_USER_AGENT:
-            self.session.headers["User-Agent"] = CHB_USER_AGENT
+        if parameters.CHB_USER_AGENT:
+            self.session.headers["User-Agent"] = parameters.CHB_USER_AGENT
 
-        if CHB_CF_CLEARANCE:
+        if parameters.CHB_CF_CLEARANCE:
             self.session.cookies.set(
                 "cf_clearance",
-                CHB_CF_CLEARANCE,
+                parameters.CHB_CF_CLEARANCE,
                 domain=".chaturbate.com",
                 path="/",
             )
@@ -99,13 +92,13 @@ class Chaturbate(Bot):
         for variant in variants:
             w, h = variant["resolution"]
             if w < h:
-                variant["resolution_diff"] = w - WANTED_RESOLUTION
+                variant["resolution_diff"] = w - parameters.WANTED_RESOLUTION
             else:
-                variant["resolution_diff"] = h - WANTED_RESOLUTION
+                variant["resolution_diff"] = h - parameters.WANTED_RESOLUTION
 
         variants.sort(key=lambda a: abs(a["resolution_diff"]))
 
-        if WANTED_RESOLUTION_PREFERENCE == "exact":
+        if parameters.WANTED_RESOLUTION_PREFERENCE == "exact":
             selected = next(
                 (v for v in variants if abs(v["resolution_diff"]) == 0), variants[0]
             )
@@ -134,7 +127,7 @@ class Chaturbate(Bot):
 
         self._proxy_test_logged = True
         try:
-            r = self.session.get(CHB_PROXY_TEST_URL, timeout=10)
+            r = self.session.get(parameters.CHB_PROXY_TEST_URL, timeout=10)
             self.logger.debug(
                 "Chaturbate proxy test: proxies=%s user-agent=%s cf_clearance=%s status=%s body=%s",
                 self.session.proxies,
@@ -221,9 +214,9 @@ class Chaturbate(Bot):
                 continue
 
         session = requests.Session()
-        session.headers.update(cls.headers)
-        if REQUESTS_PROXIES:
-            session.proxies.update(REQUESTS_PROXIES)
+        session.headers.update(cls.active_request_headers())
+        if parameters.REQUESTS_PROXIES:
+            session.proxies.update(parameters.REQUESTS_PROXIES)
         r = session.get(
             "https://chaturbate.com/affiliates/api/onlinerooms/?format=json&wm=DkfRj",
             timeout=10,

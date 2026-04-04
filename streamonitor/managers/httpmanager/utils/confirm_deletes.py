@@ -1,12 +1,13 @@
-from parameters import WEB_CONFIRM_DELETES
+import parameters
 
 
 def confirm_deletes(user_agent: str):
     ua = user_agent.lower()
     mobile_strings = ['android', 'iphone', 'ipad', 'mobile']
-    if WEB_CONFIRM_DELETES and WEB_CONFIRM_DELETES != "MOBILE":
+    cdel = parameters.WEB_CONFIRM_DELETES
+    if cdel and cdel != "MOBILE":
         return True
-    elif WEB_CONFIRM_DELETES:
+    elif cdel:
         return any(mobile in ua for mobile in mobile_strings)
     else:
         return False

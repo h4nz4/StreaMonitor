@@ -931,6 +931,54 @@ a {
     }
 }
 
+/* settings page */
+.settings-link {
+    font-size: 0.55em;
+    font-weight: 600;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+.settings-path-note {
+    margin: 0.5rem 0;
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+.settings-fieldset {
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+.settings-fieldset legend {
+    padding: 0 0.5rem;
+    font-weight: 600;
+}
+.settings-row {
+    display: grid;
+    grid-template-columns: minmax(12rem, 1fr) 2fr;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+.settings-row label {
+    font-size: 0.9rem;
+}
+.settings-row input,
+.settings-row select {
+    width: 100%;
+    padding: 0.35rem 0.5rem;
+}
+.env-locked {
+    font-size: 0.8em;
+    color: #888;
+}
+.settings-toast.ok { color: #6c6; margin: 0.5rem 0; }
+.settings-toast.error { color: #c66; margin: 0.5rem 0; }
+.settings-inline {
+    grid-column: 2;
+    font-size: 0.85rem;
+}
+
 /* animations */
 
 @keyframes spin {

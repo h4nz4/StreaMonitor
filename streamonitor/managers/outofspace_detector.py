@@ -3,7 +3,7 @@ import shutil
 from time import sleep
 import streamonitor.log as log
 from threading import Thread
-from parameters import DOWNLOADS_DIR, MIN_FREE_DISK_PERCENT
+import parameters
 from streamonitor.clean_exit import CleanExit
 
 
@@ -24,15 +24,15 @@ class OOSDetector(Thread):
 
     @staticmethod
     def space_usage():
-        if os.path.exists(DOWNLOADS_DIR):
-            usage = shutil.disk_usage(DOWNLOADS_DIR)
+        if os.path.exists(parameters.DOWNLOADS_DIR):
+            usage = shutil.disk_usage(parameters.DOWNLOADS_DIR)
         else:
             usage = shutil.disk_usage('.')
         return usage
 
     @staticmethod
     def disk_space_good():
-        return OOSDetector.free_space() > MIN_FREE_DISK_PERCENT
+        return OOSDetector.free_space() > parameters.MIN_FREE_DISK_PERCENT
 
     def run(self):
         while True:

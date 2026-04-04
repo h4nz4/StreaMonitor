@@ -12,16 +12,8 @@ import m3u8
 import requests
 import requests.cookies
 
+import parameters
 import streamonitor.log as log
-from parameters import (
-    CONTAINER,
-    DEBUG,
-    DOWNLOADS_DIR,
-    HTTP_USER_AGENT,
-    REQUESTS_PROXIES,
-    WANTED_RESOLUTION,
-    WANTED_RESOLUTION_PREFERENCE,
-)
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 from streamonitor.db import record_status_event, recording_finished, recording_started
 from streamonitor.enums import COUNTRIES, GENDER_DATA, Gender, Status
@@ -60,8 +52,6 @@ class Bot(Thread):
     sleep_on_ratelimit = 180
     long_offline_timeout = 600
 
-    headers = {"User-Agent": HTTP_USER_AGENT}
-
     status_messages = {
         Status.UNKNOWN: "Unknown error",
         Status.PUBLIC: "Channel online",
@@ -82,15 +72,20 @@ class Bot(Thread):
             global LOADED_SITES
             LOADED_SITES.add(cls)
 
+    @classmethod
+    def active_request_headers(cls):
+        return {"User-Agent": parameters.HTTP_USER_AGENT}
+
     def __init__(self, username):
         super().__init__()
         self.username = username
         self.logger = self.getLogger()
+        self.headers = dict(self.active_request_headers())
 
         self.session = requests.Session()
         self.session.headers.update(self.headers)
-        if REQUESTS_PROXIES:
-            self.session.proxies.update(REQUESTS_PROXIES)
+        if parameters.REQUESTS_PROXIES:
+            self.session.proxies.update(parameters.REQUESTS_PROXIES)
         self.cookies = None
         self.cookieUpdater = None
         self.cookie_update_interval = 0
@@ -144,7 +139,7 @@ class Bot(Thread):
         self.logger.info(message)
 
     def debug(self, message, filename=None):
-        if DEBUG:
+        if parameters.DEBUG:
             self.logger.debug(message)
             if not filename:
                 filename = os.path.join(self.outputFolder, "debug.log")
@@ -407,24 +402,24 @@ class Bot(Thread):
             for source in sources:
                 width, height = source["resolution"]
                 if width < height:
-                    source["resolution_diff"] = width - WANTED_RESOLUTION
+                    source["resolution_diff"] = width - parameters.WANTED_RESOLUTION
                 else:
-                    source["resolution_diff"] = height - WANTED_RESOLUTION
+                    source["resolution_diff"] = height - parameters.WANTED_RESOLUTION
 
             sources.sort(key=lambda a: abs(a["resolution_diff"]))
             selected_source = None
 
-            if WANTED_RESOLUTION_PREFERENCE == "exact":
+            if parameters.WANTED_RESOLUTION_PREFERENCE == "exact":
                 if sources[0]["resolution_diff"] == 0:
                     selected_source = sources[0]
-            elif WANTED_RESOLUTION_PREFERENCE == "closest" or len(sources) == 1:
+            elif parameters.WANTED_RESOLUTION_PREFERENCE == "closest" or len(sources) == 1:
                 selected_source = sources[0]
-            elif WANTED_RESOLUTION_PREFERENCE == "exact_or_least_higher":
+            elif parameters.WANTED_RESOLUTION_PREFERENCE == "exact_or_least_higher":
                 for source in sources:
                     if source["resolution_diff"] >= 0:
                         selected_source = source
                         break
-            elif WANTED_RESOLUTION_PREFERENCE == "exact_or_highest_lower":
+            elif parameters.WANTED_RESOLUTION_PREFERENCE == "exact_or_highest_lower":
                 for source in sources:
                     if source["resolution_diff"] <= 0:
                         selected_source = source
@@ -474,7 +469,7 @@ class Bot(Thread):
     @property
     def outputFolder(self):
         return str(
-            os.path.join(DOWNLOADS_DIR, self.username + " [" + self.siteslug + "]")
+            os.path.join(parameters.DOWNLOADS_DIR, self.username + " [" + self.siteslug + "]")
         )
 
     def genOutFilename(self, create_dir=True):
@@ -482,7 +477,7 @@ class Bot(Thread):
         if create_dir:
             os.makedirs(folder, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        filename = os.path.join(folder, f"{self.username}-{timestamp}.{CONTAINER}")
+        filename = os.path.join(folder, f"{self.username}-{timestamp}.{parameters.CONTAINER}")
         return filename
 
     def web_ui_rows(self):

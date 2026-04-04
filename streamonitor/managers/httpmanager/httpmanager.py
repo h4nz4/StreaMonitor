@@ -6,8 +6,7 @@ import os
 import json
 import logging
 
-from parameters import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_PASSWORD, WEB_LIST_FREQUENCY, WEB_STATUS_FREQUENCY, \
-    WEBSERVER_SKIN
+import parameters
 import streamonitor.log as log
 from functools import wraps
 from secrets import compare_digest
@@ -31,7 +30,7 @@ class HTTPManager(Manager):
         self.loaded_site_names = [site.site for site in LOADED_SITES]
         self.loaded_site_names.sort()
 
-        skin = WEBSERVER_SKIN
+        skin = parameters.WEBSERVER_SKIN
         if skin in os.listdir(os.path.join(os.path.dirname(__file__), 'skins')):
             self.skin = skin
         else:
@@ -51,13 +50,14 @@ class HTTPManager(Manager):
         app.add_template_filter(status_text, name='status_text')
 
         def check_auth(username, password):
-            return WEBSERVER_PASSWORD == "" or (username == 'admin' and compare_digest(password, WEBSERVER_PASSWORD))
+            pw = parameters.WEBSERVER_PASSWORD
+            return pw == "" or (username == 'admin' and compare_digest(password, pw))
 
         def login_required(f):
             @wraps(f)
             def wrapped_view(**kwargs):
                 auth = request.authorization
-                if WEBSERVER_PASSWORD != "" and not (auth and check_auth(auth.username, auth.password)):
+                if parameters.WEBSERVER_PASSWORD != "" and not (auth and check_auth(auth.username, auth.password)):
                     return ('Unauthorized', 401, {
                         'WWW-Authenticate': 'Basic realm="Login Required"'
                     })
@@ -126,7 +126,7 @@ class HTTPManager(Manager):
                 'free_space': human_file_size(usage.free),
                 'total_space': human_file_size(usage.total),
                 'percentage_free': round(usage.free / usage.total * 100, 3),
-                'refresh_freq': WEB_LIST_FREQUENCY,
+                'refresh_freq': parameters.WEB_LIST_FREQUENCY,
                 'confirm_deletes': confirm_deletes(request.headers.get('User-Agent')),
             } | filter_context
             return render_template('index.html.jinja', **context)
@@ -138,7 +138,7 @@ class HTTPManager(Manager):
             context = {
                 'streamers': streamers,
                 'sites': LOADED_SITES,
-                'refresh_freq': WEB_LIST_FREQUENCY,
+                'refresh_freq': parameters.WEB_LIST_FREQUENCY,
                 'toast_status': "hide",
                 'toast_message': "",
                 'confirm_deletes': confirm_deletes(request.headers.get('User-Agent')),
@@ -245,7 +245,7 @@ class HTTPManager(Manager):
                 'streamers': streamers,
                 'unique_sites': set(map(lambda x: x.site, self.streamers)),
                 'update_filter_site_options': update_site_options,
-                'refresh_freq': WEB_LIST_FREQUENCY,
+                'refresh_freq': parameters.WEB_LIST_FREQUENCY,
                 'toast_status': toast_status,
                 'toast_message': res,
                 'confirm_deletes': confirm_deletes(request.headers.get('User-Agent')),
@@ -274,7 +274,7 @@ class HTTPManager(Manager):
                 'update_content': False if len(streamer_context) == 0 else True,
                 'streamer': streamer,
                 'has_error': has_error,
-                'refresh_freq': WEB_STATUS_FREQUENCY,
+                'refresh_freq': parameters.WEB_STATUS_FREQUENCY,
             }
             return render_template('streamer_nav_bar.html.jinja', **context), status_code
 
@@ -406,7 +406,7 @@ class HTTPManager(Manager):
                 res = str(e)
             context = {
                 'streamers': streamers,
-                'refresh_freq': WEB_LIST_FREQUENCY,
+                'refresh_freq': parameters.WEB_LIST_FREQUENCY,
                 'toast_status': toast_status,
                 'toast_message': res,
                 'error_message': error_message,
@@ -451,7 +451,7 @@ class HTTPManager(Manager):
 
             context = {
                 'streamers': streamers,
-                'refresh_freq': WEB_LIST_FREQUENCY,
+                'refresh_freq': parameters.WEB_LIST_FREQUENCY,
                 'toast_status': toast_status,
                 'toast_message': res,
                 'error_message': error_message,
@@ -459,4 +459,25 @@ class HTTPManager(Manager):
             } | filter_context
             return render_template('streamers_result.html.jinja', **context), status_code
 
-        app.run(host=WEBSERVER_HOST, port=WEBSERVER_PORT)
+        @app.route("/settings", methods=["GET", "POST"])
+        @login_required
+        def settings_page():
+            message = ""
+            error = False
+            if request.method == "POST":
+                ok, msg = parameters.save_settings_from_form(request.form)
+                if ok:
+                    message = msg
+                else:
+                    message = msg
+                    error = True
+            return render_template(
+                "settings.html.jinja",
+                setting_groups=parameters.settings_form_context(),
+                message=message,
+                error=error,
+                settings_path=str(parameters.WEB_SETTINGS_PATH),
+                config_path=str(parameters.CONFIG_PATH),
+            )
+
+        app.run(host=parameters.WEBSERVER_HOST, port=parameters.WEBSERVER_PORT)

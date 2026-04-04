@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from parameters import DOWNLOADS_DIR
+import parameters
 from sqlalchemy import select
 
 from streamonitor.db.models import Base, RecordingRow, StatusEventRow, StreamerRow
@@ -23,7 +23,7 @@ def init_database() -> None:
 
 
 def _downloads_root() -> str:
-    return os.path.abspath(DOWNLOADS_DIR)
+    return os.path.abspath(parameters.DOWNLOADS_DIR)
 
 
 def _relative_download_path(abs_path: str) -> str:

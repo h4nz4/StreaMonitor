@@ -1,6 +1,6 @@
 import requests
 
-from parameters import REQUESTS_PROXIES
+import parameters
 from streamonitor.bot import Bot
 from streamonitor.enums import Status
 
@@ -29,7 +29,7 @@ class XLoveCam(Bot):
             f"https://www.xlovecam.com/hu/performerAction/onlineList",
             headers=self.headers,
             data=data,
-            proxies=REQUESTS_PROXIES,
+            proxies=parameters.REQUESTS_PROXIES,
         )
         if not r.ok:
             return None
@@ -57,7 +57,7 @@ class XLoveCam(Bot):
             f"https://www.xlovecam.com/hu/performerAction/getPerformerRoom",
             headers=self.headers,
             data=data,
-            proxies=REQUESTS_PROXIES,
+            proxies=parameters.REQUESTS_PROXIES,
         )
 
         if not r.ok:

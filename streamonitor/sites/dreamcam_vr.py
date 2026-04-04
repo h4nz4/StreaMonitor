@@ -1,6 +1,6 @@
 from urllib.parse import urlparse, parse_qs
 
-from parameters import VR_FORMAT_SUFFIX
+import parameters
 
 from streamonitor.downloaders.fmp4s_wss import getVideoWSSVR
 from streamonitor.sites.dreamcam import DreamCam
@@ -25,7 +25,7 @@ class DreamCamVR(DreamCam):
     @property
     def filename_extra_suffix(self):
         vr_suffix = ''
-        if not VR_FORMAT_SUFFIX:
+        if not parameters.VR_FORMAT_SUFFIX:
             return vr_suffix
 
         video_url = self.getVideoUrl()

@@ -2,7 +2,7 @@ import time
 
 import requests
 
-from parameters import REQUESTS_PROXIES
+import parameters
 from streamonitor.bot import RoomIdBot
 from streamonitor.enums import Status
 
@@ -25,8 +25,8 @@ class SexChatHU(RoomIdBot):
         ):  # Cache for 1 hour
             req = requests.get(
                 "https://sexchat.hu/ajax/api/roomList/babes",
-                headers=cls.headers,
-                proxies=REQUESTS_PROXIES,
+                headers=cls.active_request_headers(),
+                proxies=parameters.REQUESTS_PROXIES,
             )
             SexChatHU._performers_list_cache = req.json()
             SexChatHU._performers_list_cache_timestamp = time.time()

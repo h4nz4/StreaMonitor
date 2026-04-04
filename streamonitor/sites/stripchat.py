@@ -8,7 +8,7 @@ import re
 
 import requests
 
-from parameters import REQUESTS_PROXIES
+import parameters
 from streamonitor.bot import RoomIdBot
 from streamonitor.downloaders.hls import getVideoNativeHLS
 from streamonitor.enums import COUNTRIES, Gender, Status
@@ -62,10 +62,10 @@ class StripChat(RoomIdBot):
     @classmethod
     def getInitialData(cls):
         session = requests.Session()
-        if REQUESTS_PROXIES:
-            session.proxies.update(REQUESTS_PROXIES)
+        if parameters.REQUESTS_PROXIES:
+            session.proxies.update(parameters.REQUESTS_PROXIES)
         r = session.get(
-            "https://stripchat.com/api/front/v3/config/static", headers=cls.headers
+            "https://stripchat.com/api/front/v3/config/static", headers=cls.active_request_headers()
         )
         if r.status_code != 200:
             raise Exception("Failed to fetch static data from StripChat")
@@ -287,9 +287,9 @@ class StripChat(RoomIdBot):
             for i in range(0, len(model_id_list), batch_num)
         ]:
             session = requests.Session()
-            session.headers.update(cls.headers)
-            if REQUESTS_PROXIES:
-                session.proxies.update(REQUESTS_PROXIES)
+            session.headers.update(cls.active_request_headers())
+            if parameters.REQUESTS_PROXIES:
+                session.proxies.update(parameters.REQUESTS_PROXIES)
             r = session.get(
                 base_url
                 + "&".join(f"modelIds[]={model_id}" for model_id in _batch_ids),

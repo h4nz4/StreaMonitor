@@ -5,11 +5,11 @@ import sys
 
 import requests.cookies
 from threading import Thread
-from parameters import DEBUG, SEGMENT_TIME, CONTAINER, FFMPEG_PATH, FFMPEG_READRATE
+import parameters
 
 
 def getVideoFfmpeg(self, url, filename):
-    cmd = [FFMPEG_PATH, "-user_agent", self.headers["User-Agent"]]
+    cmd = [parameters.FFMPEG_PATH, "-user_agent", self.headers["User-Agent"]]
 
     if type(self.cookies) is requests.cookies.RequestsCookieJar:
         cookies_text = ""
@@ -28,8 +28,8 @@ def getVideoFfmpeg(self, url, filename):
             cookies_text = cookies_text[:-1]
         cmd.extend(["-cookies", cookies_text])
 
-    if FFMPEG_READRATE:
-        cmd.extend(["-readrate", f"{FFMPEG_READRATE!s}"])
+    if parameters.FFMPEG_READRATE:
+        cmd.extend(["-readrate", f"{parameters.FFMPEG_READRATE!s}"])
 
     cmd.extend(
         [
@@ -66,7 +66,7 @@ def getVideoFfmpeg(self, url, filename):
     if hasattr(self, "filename_extra_suffix"):
         suffix = self.filename_extra_suffix
 
-    if SEGMENT_TIME is not None:
+    if parameters.SEGMENT_TIME is not None:
         username = filename.rsplit("-", maxsplit=2)[0]
         cmd.extend(
             [
@@ -75,14 +75,14 @@ def getVideoFfmpeg(self, url, filename):
                 "-reset_timestamps",
                 "1",
                 "-segment_time",
-                str(SEGMENT_TIME),
+                str(parameters.SEGMENT_TIME),
                 "-strftime",
                 "1",
-                f"{username}-%Y%m%d-%H%M%S{suffix}.{CONTAINER}",
+                f"{username}-%Y%m%d-%H%M%S{suffix}.{parameters.CONTAINER}",
             ]
         )
     else:
-        cmd.extend([os.path.splitext(filename)[0] + suffix + "." + CONTAINER])
+        cmd.extend([os.path.splitext(filename)[0] + suffix + "." + parameters.CONTAINER])
 
     class _Stopper:
         def __init__(self):
@@ -98,7 +98,7 @@ def getVideoFfmpeg(self, url, filename):
         nonlocal error
         try:
             stderr = (
-                open(filename + ".stderr.log", "w+") if DEBUG else subprocess.DEVNULL
+                open(filename + ".stderr.log", "w+") if parameters.DEBUG else subprocess.DEVNULL
             )
             startupinfo = None
             if sys.platform == "win32":

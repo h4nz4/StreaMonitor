@@ -6,7 +6,7 @@ from typing import Iterator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from parameters import DATABASE_URL
+import parameters
 
 _engine = None
 _session_factory: sessionmaker[Session] | None = None
@@ -16,10 +16,10 @@ def get_engine():
     global _engine
     if _engine is None:
         connect_args: dict = {}
-        if DATABASE_URL.startswith("sqlite"):
+        if parameters.DATABASE_URL.startswith("sqlite"):
             connect_args["check_same_thread"] = False
         _engine = create_engine(
-            DATABASE_URL,
+            parameters.DATABASE_URL,
             connect_args=connect_args,
             pool_pre_ping=True,
         )

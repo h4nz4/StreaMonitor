@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, TYPE_CHECKING
 
 import streamonitor.log as log
-from parameters import WEB_STATUS_FREQUENCY, WEB_THEATER_MODE
+import parameters
 from .confirm_deletes import confirm_deletes
 from streamonitor.models.video_data import VideoData
 
@@ -30,12 +30,12 @@ def get_streamer_context(streamer: Bot, sort_by_size: bool, play_video: str, use
         'streamer': streamer,
         'sort_by_size': sort_by_size,
         'video_to_play': videos.get(play_video),
-        'refresh_freq': WEB_STATUS_FREQUENCY,
+        'refresh_freq': parameters.WEB_STATUS_FREQUENCY,
         'videos': videos,
         'total_size': streamer.video_files_total_size,
         'has_error': has_error,
         'recordings_error_message': recordings_error_message,
-        'theater_mode': WEB_THEATER_MODE,
+        'theater_mode': parameters.WEB_THEATER_MODE,
         'confirm_deletes': confirm_deletes(user_agent),
     }
     return context

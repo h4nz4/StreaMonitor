@@ -5,7 +5,7 @@ from threading import Thread
 from websocket import create_connection, WebSocketConnectionClosedException, WebSocketException
 from contextlib import closing
 from ffmpy import FFmpeg, FFRuntimeError
-from parameters import DEBUG, CONTAINER, SEGMENT_TIME, FFMPEG_PATH
+import parameters
 
 
 def getVideoWSSVR(self, url, filename):
@@ -17,8 +17,8 @@ def getVideoWSSVR(self, url, filename):
     if hasattr(self, 'filename_extra_suffix'):
         suffix = self.filename_extra_suffix
 
-    basefilename = filename[:-len('.' + CONTAINER)]
-    filename = basefilename + suffix + '.' + CONTAINER
+    basefilename = filename[:-len('.' + parameters.CONTAINER)]
+    filename = basefilename + suffix + '.' + parameters.CONTAINER
     tmpfilename = basefilename + '.tmp.mp4'
 
     def debug_(message):
@@ -75,13 +75,13 @@ def getVideoWSSVR(self, url, filename):
 
     # Post-processing
     try:
-        stdout = open(filename + '.postprocess_stdout.log', 'w+') if DEBUG else subprocess.DEVNULL
-        stderr = open(filename + '.postprocess_stderr.log', 'w+') if DEBUG else subprocess.DEVNULL
+        stdout = open(filename + '.postprocess_stdout.log', 'w+') if parameters.DEBUG else subprocess.DEVNULL
+        stderr = open(filename + '.postprocess_stderr.log', 'w+') if parameters.DEBUG else subprocess.DEVNULL
         output_str = '-c:a copy -c:v copy'
-        if SEGMENT_TIME is not None:
-            output_str += f' -f segment -reset_timestamps 1 -segment_time {str(SEGMENT_TIME)}'
-            filename = basefilename + '_%03d' + suffix + '.' + CONTAINER
-        ff = FFmpeg(executable=FFMPEG_PATH, inputs={tmpfilename: '-ignore_editlist 1'}, outputs={filename: output_str})
+        if parameters.SEGMENT_TIME is not None:
+            output_str += f' -f segment -reset_timestamps 1 -segment_time {str(parameters.SEGMENT_TIME)}'
+            filename = basefilename + '_%03d' + suffix + '.' + parameters.CONTAINER
+        ff = FFmpeg(executable=parameters.FFMPEG_PATH, inputs={tmpfilename: '-ignore_editlist 1'}, outputs={filename: output_str})
         ff.run(stdout=stdout, stderr=stderr)
         os.remove(tmpfilename)
     except FFRuntimeError as e:

@@ -4,7 +4,7 @@ import subprocess
 from threading import Thread
 from ffmpy import FFmpeg, FFRuntimeError
 from time import sleep
-from parameters import DEBUG, CONTAINER, SEGMENT_TIME, FFMPEG_PATH
+import parameters
 
 _http_lib = None
 if not _http_lib:
@@ -26,7 +26,7 @@ if not _http_lib:
 def getVideoNativeHLS(self, url, filename, m3u_processor=None):
     self.stopDownloadFlag = False
     error = False
-    tmpfilename = filename[:-len('.' + CONTAINER)] + '.tmp.ts'
+    tmpfilename = filename[:-len('.' + parameters.CONTAINER)] + '.tmp.ts'
     session = requests.Session()
 
     def execute():
@@ -81,16 +81,16 @@ def getVideoNativeHLS(self, url, filename, m3u_processor=None):
 
     # Post-processing
     try:
-        stdout = open(filename + '.postprocess_stdout.log', 'w+') if DEBUG else subprocess.DEVNULL
-        stderr = open(filename + '.postprocess_stderr.log', 'w+') if DEBUG else subprocess.DEVNULL
+        stdout = open(filename + '.postprocess_stdout.log', 'w+') if parameters.DEBUG else subprocess.DEVNULL
+        stderr = open(filename + '.postprocess_stderr.log', 'w+') if parameters.DEBUG else subprocess.DEVNULL
         output_str = '-c:a copy -c:v copy'
         suffix = ''
-        if SEGMENT_TIME is not None:
-            output_str += f' -f segment -reset_timestamps 1 -segment_time {str(SEGMENT_TIME)}'
+        if parameters.SEGMENT_TIME is not None:
+            output_str += f' -f segment -reset_timestamps 1 -segment_time {str(parameters.SEGMENT_TIME)}'
             if hasattr(self, 'filename_extra_suffix'):
                 suffix = self.filename_extra_suffix
-            filename = filename[:-len('.' + CONTAINER)] + '_%03d' + suffix + '.' + CONTAINER
-        ff = FFmpeg(executable=FFMPEG_PATH, inputs={tmpfilename: None}, outputs={filename: output_str})
+            filename = filename[:-len('.' + parameters.CONTAINER)] + '_%03d' + suffix + '.' + parameters.CONTAINER
+        ff = FFmpeg(executable=parameters.FFMPEG_PATH, inputs={tmpfilename: None}, outputs={filename: output_str})
         ff.run(stdout=stdout, stderr=stderr)
         os.remove(tmpfilename)
     except FFRuntimeError as e:

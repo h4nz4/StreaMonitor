@@ -28,11 +28,22 @@ def _ensure_parent_dir(path: str) -> None:
         os.makedirs(parent, exist_ok=True)
 
 
+def _streamer_list_from_doc(data):
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        s = data.get("streamers")
+        if isinstance(s, list):
+            return s
+    return []
+
+
 def load_config():
     _reject_config_dir(config_loc)
     try:
         with open(config_loc, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+        return _streamer_list_from_doc(data)
     except FileNotFoundError:
         _ensure_parent_dir(config_loc)
         with open(config_loc, "w", encoding="utf-8") as f:
@@ -47,8 +58,24 @@ def save_config(config):
     _reject_config_dir(config_loc)
     try:
         _ensure_parent_dir(config_loc)
+        use_wrapper = False
+        preserved_settings = {}
+        if os.path.isfile(config_loc):
+            try:
+                with open(config_loc, "r", encoding="utf-8") as f:
+                    raw = json.load(f)
+                if isinstance(raw, dict) and ("streamers" in raw or "settings" in raw):
+                    use_wrapper = True
+                    ps = raw.get("settings")
+                    if isinstance(ps, dict):
+                        preserved_settings = ps
+            except (json.JSONDecodeError, OSError):
+                pass
         with open(config_loc, "w", encoding="utf-8") as f:
-            json.dump(config, f, indent=4)
+            if use_wrapper:
+                json.dump({"streamers": config, "settings": preserved_settings}, f, indent=4)
+            else:
+                json.dump(config, f, indent=4)
 
         return True
     except Exception as e:
