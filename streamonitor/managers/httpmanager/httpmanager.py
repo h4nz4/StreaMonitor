@@ -21,6 +21,7 @@ from .mappers import web_status_lookup
 from .models import InvalidStreamer
 from .utils import confirm_deletes, streamer_list, get_streamer_context, set_streamer_list_cookies, \
     streamer_status_changed
+from .api_v1 import create_api_v1_blueprint
 
 
 class HTTPManager(Manager):
@@ -66,6 +67,8 @@ class HTTPManager(Manager):
                 return f(**kwargs)
 
             return wrapped_view
+
+        app.register_blueprint(create_api_v1_blueprint(self, login_required))
 
         @app.route('/dashboard')
         @login_required
