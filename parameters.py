@@ -9,6 +9,9 @@ if os.path.exists(".env"):
 
 
 DOWNLOADS_DIR = env.str("STRMNTR_DOWNLOAD_DIR", "downloads")
+# Path to streamer list JSON. In Docker, bind-mount a directory and set this to a file inside it
+# (e.g. STRMNTR_CONFIG=/app/data/config.json); mounting a single missing file becomes a directory.
+CONFIG_PATH = env.str("STRMNTR_CONFIG", "config.json")
 MIN_FREE_DISK_PERCENT = env.float("STRMNTR_MIN_FREE_SPACE", 5.0)  # in %
 DEBUG = env.bool("STRMNTR_DEBUG", False)
 
@@ -17,6 +20,32 @@ HTTP_USER_AGENT = env.str(
     "STRMNTR_USER_AGENT",
     "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0",
 )
+
+# Optional Chaturbate diagnostics / Cloudflare clearance support
+CHB_PROXY_TEST_URL = env.str(
+    "STRMNTR_CB_PROXY_TEST_URL",
+    "https://api.ipify.org?format=json",
+).strip()
+CHB_CF_CLEARANCE = env.str("STRMNTR_CB_CF_CLEARANCE", "").strip()
+CHB_USER_AGENT = env.str("STRMNTR_CB_USER_AGENT", "").strip()
+
+# Optional proxy for HTTP/HTTPS requests (same URL used for both when set)
+REQUESTS_HTTP_PROXY = env.str("STRMNTR_HTTP_PROXY", "").strip()
+REQUESTS_NO_PROXY = env.str("STRMNTR_NO_PROXY", "").strip()
+
+REQUESTS_PROXIES = {}
+if REQUESTS_HTTP_PROXY:
+    REQUESTS_PROXIES["http"] = REQUESTS_HTTP_PROXY
+    REQUESTS_PROXIES["https"] = REQUESTS_HTTP_PROXY
+
+if REQUESTS_HTTP_PROXY:
+    os.environ["HTTP_PROXY"] = REQUESTS_HTTP_PROXY
+    os.environ["http_proxy"] = REQUESTS_HTTP_PROXY
+    os.environ["HTTPS_PROXY"] = REQUESTS_HTTP_PROXY
+    os.environ["https_proxy"] = REQUESTS_HTTP_PROXY
+if REQUESTS_NO_PROXY:
+    os.environ["NO_PROXY"] = REQUESTS_NO_PROXY
+    os.environ["no_proxy"] = REQUESTS_NO_PROXY
 
 # Specify the full path to the ffmpeg binary. By default, ffmpeg found on PATH is used.
 FFMPEG_PATH = env.str("STRMNTR_FFMPEG_PATH", "ffmpeg")

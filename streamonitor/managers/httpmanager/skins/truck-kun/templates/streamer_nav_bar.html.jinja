@@ -9,7 +9,7 @@
         <a href="{{ streamer.url }}" target="_blank"><div title="{{ streamer.sc | status_text }}" class="status-indicator {{icon}}"><i class="icon feather icon-{{icon}}"></i></div></a>
     </div>
     <span class="nav-spacer">
-        <input type="hidden" name="prev_state" class="streamer-context play-video-context sorted-context" value="{{ streamer.sc }}">
+        <input type="hidden" name="prev_state" class="streamer-context play-video-context sorted-context" value="{{ streamer.sc.value }}">
     </span>
 </nav>
 {% if update_content %}

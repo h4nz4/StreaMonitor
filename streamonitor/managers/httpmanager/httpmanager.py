@@ -20,7 +20,8 @@ from streamonitor.utils import human_file_size
 from .filters import status_icon, status_text
 from .mappers import web_status_lookup
 from .models import InvalidStreamer
-from .utils import confirm_deletes, streamer_list, get_recording_query_params, get_streamer_context, set_streamer_list_cookies
+from .utils import confirm_deletes, streamer_list, get_recording_query_params, get_streamer_context, set_streamer_list_cookies, \
+    streamer_status_changed
 
 
 class HTTPManager(Manager):
@@ -257,18 +258,17 @@ class HTTPManager(Manager):
             streamer = self.getStreamer(user, site)
             sort_by_size = bool(request.args.get("sorted", False))
             play_video = request.args.get("play_video", None)
-            previous_state = request.args.get("prev_state", False)
+            previous_state = request.args.get("prev_state")
             streamer_context = {}
-            # need this from the UI perspective to know whether to update due to polling windows
-            if previous_state != streamer.sc:
-                streamer_context = get_streamer_context(
-                    streamer, sort_by_size, play_video, request.headers.get('User-Agent'))
             status_code = 200
             has_error = False
             if streamer is None:
                 status_code = 500
                 streamer = InvalidStreamer(user, site)
                 has_error = True
+            elif streamer_status_changed(previous_state, streamer.sc):
+                streamer_context = get_streamer_context(
+                    streamer, sort_by_size, play_video, request.headers.get('User-Agent'))
             context = {
                 **streamer_context,
                 'update_content': False if len(streamer_context) == 0 else True,
@@ -289,7 +289,12 @@ class HTTPManager(Manager):
                 status_code = 500
                 res = f"Could not get info for {user} on site {site}"
                 has_error = True
-            streamer.cache_file_list()
+            else:
+                streamer.cache_file_list()
+                try:
+                    streamer.sc = streamer.getStatus()
+                except Exception as e:
+                    self.logger.exception(e)
             context = {
                 'streamer': streamer,
                 'streamer_has_error': has_error,

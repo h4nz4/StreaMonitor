@@ -1,5 +1,7 @@
 import re
+from urllib.parse import urljoin
 
+import m3u8
 import requests
 
 from parameters import (
@@ -7,6 +9,8 @@ from parameters import (
     CHB_PROXY_TEST_URL,
     CHB_USER_AGENT,
     REQUESTS_PROXIES,
+    WANTED_RESOLUTION,
+    WANTED_RESOLUTION_PREFERENCE,
 )
 from streamonitor.bot import Bot
 from streamonitor.enums import Gender, Status
@@ -110,7 +114,9 @@ class Chaturbate(Bot):
         self.logger.info(
             f"Selected {selected['resolution'][0]}x{selected['resolution'][1]} resolution (CMAF)"
         )
-        return (selected["url"], selected["audio_url"])
+        if selected["audio_url"]:
+            return (selected["url"], selected["audio_url"])
+        return selected["url"]
 
     @staticmethod
     def _parseStatus(status):
@@ -150,7 +156,8 @@ class Chaturbate(Bot):
         data = {"room_slug": self.username, "bandwidth": "high"}
 
         try:
-            r = requests.post(
+            self._log_proxy_test()
+            r = self.session.post(
                 "https://chaturbate.com/get_edge_hls_url_ajax/",
                 headers=headers,
                 data=data,
@@ -163,8 +170,8 @@ class Chaturbate(Bot):
             )
             self.lastInfo = r.json()
             status = self._parseStatus(self.lastInfo["room_status"])
-            if status == status.PUBLIC and not self.lastInfo["url"]:
-                status = status.RESTRICTED
+            if status == Status.PUBLIC and not self.lastInfo["url"]:
+                status = Status.RESTRICTED
         except Exception:
             status = Status.RATELIMIT
 
@@ -203,8 +210,8 @@ class Chaturbate(Bot):
             if model_data.get("country"):
                 streamer.country = model_data.get("country", "").upper()
             status = cls._parseStatus(model_data["current_show"])
-            if status == status.PUBLIC:
-                if streamer.sc in [status.PUBLIC, Status.RESTRICTED]:
+            if status == Status.PUBLIC:
+                if streamer.sc in [Status.PUBLIC, Status.RESTRICTED]:
                     continue
                 status = streamer.getStatus()
             if status == Status.UNKNOWN:
