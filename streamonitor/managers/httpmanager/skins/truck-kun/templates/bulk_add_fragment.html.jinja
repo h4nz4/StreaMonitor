@@ -1,0 +1,32 @@
+{% if alert_message %}
+<div class="bulk-add-result {{ alert_class }}">{{ alert_message }}</div>
+{% endif %}
+<p class="bulk-add-hint">One username per line. Pause {{ bulk_delay_seconds | round(2) }}s between adds (settings or STRMNTR_BULK_ADD_DELAY).</p>
+<div id="bulk-add-indicator" class="bulk-add-indicator">
+    <span class="bulk-add-spinner" aria-hidden="true"></span>
+    <span>Adding streamers…</span>
+</div>
+<form method="post" action="/add/bulk"
+    hx-post="/add/bulk"
+    hx-target="#bulk-add-root"
+    hx-swap="innerHTML"
+    hx-indicator="#bulk-add-indicator"
+    hx-disabled-elt="#bulk-submit-btn"
+    hx-timeout="600000"
+    class="bulk-add-form">
+    <label class="add-streamer-label site-field">
+        <span class="add-streamer-label-text">site:</span>
+        <select name="site" id="bulk-site" class="drop-down" required="required">
+            {% for site in sites %}
+            <option value="{{ site }}" {% if site == selected_site %}selected="selected"{% endif %}>{{ site }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label class="bulk-add-textarea-label">
+        <span class="add-streamer-label-text">usernames (one per line):</span>
+        <textarea class="bulk-usernames" name="usernames" rows="16" cols="48" required="required">{{ usernames_prefill }}</textarea>
+    </label>
+    <div class="submit-form-container">
+        <button type="submit" id="bulk-submit-btn" class="modify-streamers add-streamer bulk-add-submit">Add all</button>
+    </div>
+</form>

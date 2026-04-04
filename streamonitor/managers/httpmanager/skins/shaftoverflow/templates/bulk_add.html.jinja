@@ -1,0 +1,13 @@
+{% extends "layout.html.jinja" %}
+{% block title %}StreaMonitor — Bulk add{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h1 class="mb-0"><i class="bi bi-people me-2"></i>Bulk add streamers</h1>
+        <a href="/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to list</a>
+    </div>
+    <div id="bulk-add-root">
+        {% include 'bulk_add_fragment.html.jinja' %}
+    </div>
+</div>
+{% endblock %}

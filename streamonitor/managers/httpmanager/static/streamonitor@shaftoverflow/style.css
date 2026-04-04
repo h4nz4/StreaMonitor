@@ -371,3 +371,18 @@ video {
 		font-size: 0.75rem;
 	}
 }
+
+/* Bulk add (HTMX) */
+#bulk-add-indicator {
+	opacity: 0;
+	transition: opacity 0.15s ease;
+	pointer-events: none;
+}
+#bulk-add-indicator.htmx-request {
+	opacity: 1;
+}
+#bulk-add-indicator .bulk-add-indicator-inner {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}

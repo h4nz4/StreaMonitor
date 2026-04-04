@@ -24,13 +24,16 @@ services:
       STRMNTR_STATUS_FREQ: "5"
       # set refresh frequency on list page
       STRMNTR_LIST_FREQ: "30"
+      # pause between bulk-add usernames (web UI); default 0.2s if unset
+      #STRMNTR_BULK_ADD_DELAY: "0.2"
       # File inside mounted dir — avoids Docker turning a missing bind-mount file into a directory
       STRMNTR_CONFIG: "/app/data/config.json"
       # SQLite (default path matches CONFIG parent dir). For PostgreSQL use e.g. postgresql+psycopg://user:pass@postgres:5432/streamonitor
       STRMNTR_DATABASE_URL: "sqlite:////app/data/streamonitor.db"
     volumes:
       - ./downloads:/app/downloads
-      # Host: streamonitor-data/config.json — copy from ./config.json when migrating
+      # Host folder for config.json, web_settings.json, streamonitor.db — backup/rsync this directory.
+      # Path is relative to the compose file; for a fixed location use e.g. /srv/streamonitor/data:/app/data
       - ./streamonitor-data:/app/data
       - ./stripchat_mouflon_keys.json:/app/stripchat_mouflon_keys.json
       - /etc/timezone:/etc/timezone:ro

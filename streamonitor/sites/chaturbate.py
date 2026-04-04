@@ -31,13 +31,7 @@ class Chaturbate(Bot):
         if parameters.CHB_USER_AGENT:
             self.session.headers["User-Agent"] = parameters.CHB_USER_AGENT
 
-        if parameters.CHB_CF_CLEARANCE:
-            self.session.cookies.set(
-                "cf_clearance",
-                parameters.CHB_CF_CLEARANCE,
-                domain=".chaturbate.com",
-                path="/",
-            )
+        self._apply_cf_clearance_cookie(self.session)
 
     def getWebsiteURL(self):
         return "https://www.chaturbate.com/" + self.username
@@ -145,6 +139,16 @@ class Chaturbate(Bot):
                 e,
             )
 
+    @staticmethod
+    def _apply_cf_clearance_cookie(session):
+        if parameters.CHB_CF_CLEARANCE:
+            session.cookies.set(
+                "cf_clearance",
+                parameters.CHB_CF_CLEARANCE,
+                domain=".chaturbate.com",
+                path="/",
+            )
+
     def getStatus(self):
         headers = {"X-Requested-With": "XMLHttpRequest"}
         data = {"room_slug": self.username, "bandwidth": "high"}
@@ -217,6 +221,7 @@ class Chaturbate(Bot):
         session.headers.update(cls.active_request_headers())
         if parameters.REQUESTS_PROXIES:
             session.proxies.update(parameters.REQUESTS_PROXIES)
+        cls._apply_cf_clearance_cookie(session)
         r = session.get(
             "https://chaturbate.com/affiliates/api/onlinerooms/?format=json&wm=DkfRj",
             timeout=10,

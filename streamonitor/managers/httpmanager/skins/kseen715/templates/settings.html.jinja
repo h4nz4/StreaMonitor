@@ -22,7 +22,7 @@
             <div class="card-body">
                 {% for field in group.fields %}
                 <div class="mb-3">
-                    <label class="form-label" for="f-{{ field.key }}">{{ field.label }}{% if field.locked %} <span class="badge bg-dark">env</span>{% endif %}</label>
+                    <label class="form-label" for="f-{{ field.key }}">{{ field.label }}{% if field.locked and field.key != 'CHB_CF_CLEARANCE' %} <span class="badge bg-dark">env</span>{% endif %}</label>
                     {% if field.type == "bool" %}
                     <select class="form-select" id="f-{{ field.key }}" name="{{ field.key }}" {% if field.locked %}disabled{% endif %}>
                         <option value="true" {% if field.value %}selected{% endif %}>Yes</option>

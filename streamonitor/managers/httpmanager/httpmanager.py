@@ -5,6 +5,7 @@ from flask import Flask, make_response, render_template, request, send_from_dire
 import os
 import json
 import logging
+import time
 
 import parameters
 import streamonitor.log as log
@@ -14,7 +15,7 @@ from streamonitor.bot import Bot, LOADED_SITES
 from streamonitor.enums import Status
 from streamonitor.manager import Manager
 from streamonitor.managers.outofspace_detector import OOSDetector
-from streamonitor.utils import human_file_size, recordings_browser_path, streamer_qs
+from streamonitor.utils import human_file_size, normalize_streamer_username, recordings_browser_path, streamer_qs
 
 from .filters import status_icon, status_text
 from .mappers import web_status_lookup
@@ -36,6 +37,32 @@ class HTTPManager(Manager):
             self.skin = skin
         else:
             raise ValueError(f'Invalid skin name: {skin}')
+
+    def _default_site_for_forms(self) -> str:
+        if self.streamers:
+            return self.streamers[-1].site
+        return self.loaded_site_names[0]
+
+    def _bulk_add_page_context(
+        self,
+        *,
+        selected_site: str,
+        usernames_prefill: str,
+        alert_class: str | None = None,
+        alert_message: str | None = None,
+    ) -> dict:
+        usage = OOSDetector.space_usage()
+        return {
+            'sites': self.loaded_site_names,
+            'selected_site': selected_site,
+            'usernames_prefill': usernames_prefill,
+            'alert_class': alert_class,
+            'alert_message': alert_message,
+            'free_space': human_file_size(usage.free),
+            'total_space': human_file_size(usage.total),
+            'percentage_free': round(usage.free / usage.total * 100, 3),
+            'bulk_delay_seconds': parameters.BULK_ADD_DELAY_SECONDS,
+        }
 
     def run(self):
         app = Flask(
@@ -291,6 +318,97 @@ class HTTPManager(Manager):
                 'confirm_deletes': confirm_deletes(request.headers.get('User-Agent')),
             } | filter_context
             return render_template('streamers_result.html.jinja', **context), status_code
+
+        @app.route("/add/bulk", methods=['GET', 'POST'])
+        @login_required
+        def bulk_add_page():
+            def _bulk_response(ctx: dict):
+                if request.headers.get('HX-Request'):
+                    return render_template('bulk_add_fragment.html.jinja', **ctx), 200
+                return render_template('bulk_add.html.jinja', **ctx), 200
+
+            if request.method == 'GET':
+                qsite = (request.args.get('site') or '').strip()
+                selected = qsite if Bot.str2site(qsite) else self._default_site_for_forms()
+                ctx = self._bulk_add_page_context(
+                    selected_site=selected,
+                    usernames_prefill='',
+                )
+                return render_template('bulk_add.html.jinja', **ctx)
+            site = (request.form.get('site') or '').strip()
+            raw = request.form.get('usernames') or ''
+            selected = site if Bot.str2site(site) else self._default_site_for_forms()
+            if not Bot.str2site(site):
+                ctx = self._bulk_add_page_context(
+                    selected_site=selected,
+                    usernames_prefill=raw,
+                    alert_class='error',
+                    alert_message='Invalid or missing site',
+                )
+                return _bulk_response(ctx)
+            ordered: list[str] = []
+            seen_lower: set[str] = set()
+            skipped_short = 0
+            for line in raw.splitlines():
+                u = normalize_streamer_username(line.strip(), site)
+                if not u:
+                    continue
+                if len(u) < 3:
+                    skipped_short += 1
+                    continue
+                k = u.lower()
+                if k in seen_lower:
+                    continue
+                seen_lower.add(k)
+                ordered.append(u)
+            if not ordered:
+                msg = 'No valid usernames in list'
+                if skipped_short:
+                    msg += f' ({skipped_short} too short)'
+                ctx = self._bulk_add_page_context(
+                    selected_site=site,
+                    usernames_prefill=raw,
+                    alert_class='error',
+                    alert_message=msg,
+                )
+                return _bulk_response(ctx)
+            delay = parameters.BULK_ADD_DELAY_SECONDS
+            added = duplicate = failed = 0
+            n = len(ordered)
+            for i, user in enumerate(ordered):
+                streamer = self.getStreamer(user, site)
+                res = self.do_add(streamer, user, site)
+                if isinstance(res, str) and res.startswith('Added'):
+                    added += 1
+                elif res == 'Streamer already exists':
+                    duplicate += 1
+                else:
+                    failed += 1
+                if i < n - 1 and delay > 0:
+                    time.sleep(delay)
+            parts = [
+                f'{added} added',
+                f'{duplicate} already existed',
+                f'{failed} failed',
+            ]
+            if skipped_short:
+                parts.append(f'{skipped_short} skipped (short)')
+            alert_message = 'Bulk add: ' + ', '.join(parts)
+            if added > 0 and failed == 0:
+                level = 'success' if duplicate == 0 else 'warning'
+            elif added > 0:
+                level = 'warning'
+            elif duplicate > 0 and failed == 0:
+                level = 'warning'
+            else:
+                level = 'error'
+            ctx = self._bulk_add_page_context(
+                selected_site=site,
+                usernames_prefill='' if level != 'error' else raw,
+                alert_class=level,
+                alert_message=alert_message,
+            )
+            return _bulk_response(ctx)
 
         @app.route("/recording/nav", methods=['GET'])
         @app.route("/recording/nav/<user>/<site>", methods=['GET'])

@@ -1,0 +1,40 @@
+{% if alert_message %}
+<div class="alert alert-{{ 'danger' if alert_class == 'error' else ('warning' if alert_class == 'warning' else 'success') }}">{{ alert_message }}</div>
+{% endif %}
+<p class="text-muted small mb-3">One username per line for the selected site. Waits <strong>{{ bulk_delay_seconds | round(2) }}</strong>s between each add (adjust in Settings or <code>STRMNTR_BULK_ADD_DELAY</code>).</p>
+<div id="bulk-add-indicator" class="mb-3 text-info">
+    <div class="bulk-add-indicator-inner">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <span>Adding streamers…</span>
+    </div>
+</div>
+<div class="card bg-dark text-light mb-4">
+    <div class="card-body">
+        <form method="post" action="/add/bulk"
+            hx-post="/add/bulk"
+            hx-target="#bulk-add-root"
+            hx-swap="innerHTML"
+            hx-indicator="#bulk-add-indicator"
+            hx-disabled-elt="#bulk-submit-btn"
+            hx-timeout="600000"
+            class="row g-3">
+            <div class="col-md-4">
+                <label for="bulk-site" class="form-label">Site</label>
+                <select name="site" id="bulk-site" class="form-select" required="required">
+                    {% for site in sites %}
+                    <option value="{{ site }}" {% if site == selected_site %}selected="selected"{% endif %}>{{ site }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12">
+                <label for="bulk-usernames" class="form-label">Usernames (one per line)</label>
+                <textarea class="form-control font-monospace" name="usernames" id="bulk-usernames" rows="18" required="required" placeholder="model_one&#10;model_two">{{ usernames_prefill }}</textarea>
+            </div>
+            <div class="col-12 d-flex align-items-center gap-3 flex-wrap">
+                <button type="submit" id="bulk-submit-btn" class="btn btn-success">
+                    <i class="bi bi-plus-square me-1"></i>Add all
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

@@ -11,9 +11,13 @@ if os.path.exists(".env"):
     environ.Env.read_env(".env")
 
 CONFIG_PATH = env.str("STRMNTR_CONFIG", "config.json")
-_default_sqlite_path = Path(CONFIG_PATH).expanduser().resolve().parent / "streamonitor.db"
+_default_sqlite_path = (
+    Path(CONFIG_PATH).expanduser().resolve().parent / "streamonitor.db"
+)
 
-WEB_SETTINGS_PATH = Path(CONFIG_PATH).expanduser().resolve().parent / "web_settings.json"
+WEB_SETTINGS_PATH = (
+    Path(CONFIG_PATH).expanduser().resolve().parent / "web_settings.json"
+)
 
 _file_settings: dict[str, Any] = {}
 
@@ -44,6 +48,7 @@ WEB_STATUS_FREQUENCY: int
 WEB_THEATER_MODE: bool
 WEB_CONFIRM_DELETES: str
 WEBSERVER_PASSWORD: str
+BULK_ADD_DELAY_SECONDS: float
 
 RESOLUTION_PREF_CHOICES = (
     "exact",
@@ -56,41 +61,148 @@ SETTINGS_FORM_GROUPS: list[dict[str, Any]] = [
     {
         "title": "Recording",
         "fields": [
-            {"key": "WANTED_RESOLUTION", "env": "STRMNTR_RESOLUTION", "type": "int", "label": "Target resolution height (px)"},
-            {"key": "WANTED_RESOLUTION_PREFERENCE", "env": "STRMNTR_RESOLUTION_PREF", "type": "choice", "choices": RESOLUTION_PREF_CHOICES, "label": "Resolution match policy"},
-            {"key": "CONTAINER", "env": "STRMNTR_CONTAINER", "type": "str", "label": "Output container (mkv, mp4, …)"},
-            {"key": "VR_FORMAT_SUFFIX", "env": "STRMNTR_VR_FORMAT_SUFFIX", "type": "bool", "label": "VR filename suffix"},
-            {"key": "FFMPEG_PATH", "env": "STRMNTR_FFMPEG_PATH", "type": "str", "label": "ffmpeg binary path"},
-            {"key": "FFMPEG_READRATE", "env": "STRMNTR_FFMPEG_READRATE", "type": "float", "label": "ffmpeg -readrate"},
-            {"key": "SEGMENT_TIME", "env": "STRMNTR_SEGMENT_TIME", "type": "optional_str", "label": "Segment time (seconds or hh:mm:ss, empty = off)"},
+            {
+                "key": "WANTED_RESOLUTION",
+                "env": "STRMNTR_RESOLUTION",
+                "type": "int",
+                "label": "Target resolution height (px)",
+            },
+            {
+                "key": "WANTED_RESOLUTION_PREFERENCE",
+                "env": "STRMNTR_RESOLUTION_PREF",
+                "type": "choice",
+                "choices": RESOLUTION_PREF_CHOICES,
+                "label": "Resolution match policy",
+            },
+            {
+                "key": "CONTAINER",
+                "env": "STRMNTR_CONTAINER",
+                "type": "str",
+                "label": "Output container (mkv, mp4, …)",
+            },
+            {
+                "key": "VR_FORMAT_SUFFIX",
+                "env": "STRMNTR_VR_FORMAT_SUFFIX",
+                "type": "bool",
+                "label": "VR filename suffix",
+            },
+            {
+                "key": "FFMPEG_PATH",
+                "env": "STRMNTR_FFMPEG_PATH",
+                "type": "str",
+                "label": "ffmpeg binary path",
+            },
+            {
+                "key": "FFMPEG_READRATE",
+                "env": "STRMNTR_FFMPEG_READRATE",
+                "type": "float",
+                "label": "ffmpeg -readrate",
+            },
+            {
+                "key": "SEGMENT_TIME",
+                "env": "STRMNTR_SEGMENT_TIME",
+                "type": "optional_str",
+                "label": "Segment time (seconds or hh:mm:ss, empty = off)",
+            },
         ],
     },
     {
         "title": "HTTP client",
         "fields": [
-            {"key": "HTTP_USER_AGENT", "env": "STRMNTR_USER_AGENT", "type": "str", "label": "Default HTTP User-Agent"},
-            {"key": "REQUESTS_HTTP_PROXY", "env": "STRMNTR_HTTP_PROXY", "type": "str", "label": "HTTP(s) proxy URL (empty = none)"},
-            {"key": "REQUESTS_NO_PROXY", "env": "STRMNTR_NO_PROXY", "type": "str", "label": "NO_PROXY value"},
-            {"key": "CHB_PROXY_TEST_URL", "env": "STRMNTR_CB_PROXY_TEST_URL", "type": "str", "label": "Chaturbate proxy test URL"},
-            {"key": "CHB_CF_CLEARANCE", "env": "STRMNTR_CB_CF_CLEARANCE", "type": "str", "label": "Chaturbate cf_clearance cookie"},
-            {"key": "CHB_USER_AGENT", "env": "STRMNTR_CB_USER_AGENT", "type": "str", "label": "Chaturbate-specific User-Agent"},
+            {
+                "key": "HTTP_USER_AGENT",
+                "env": "STRMNTR_USER_AGENT",
+                "type": "str",
+                "label": "Default HTTP User-Agent",
+            },
+            {
+                "key": "REQUESTS_HTTP_PROXY",
+                "env": "STRMNTR_HTTP_PROXY",
+                "type": "str",
+                "label": "HTTP(s) proxy URL (empty = none)",
+            },
+            {
+                "key": "REQUESTS_NO_PROXY",
+                "env": "STRMNTR_NO_PROXY",
+                "type": "str",
+                "label": "NO_PROXY value",
+            },
+            {
+                "key": "CHB_PROXY_TEST_URL",
+                "env": "STRMNTR_CB_PROXY_TEST_URL",
+                "type": "str",
+                "label": "Chaturbate proxy test URL",
+            },
+            {
+                "key": "CHB_CF_CLEARANCE",
+                "env": "STRMNTR_CB_CF_CLEARANCE",
+                "type": "str",
+                "label": "Chaturbate cf_clearance cookie",
+            },
+            {
+                "key": "CHB_USER_AGENT",
+                "env": "STRMNTR_CB_USER_AGENT",
+                "type": "str",
+                "label": "Chaturbate-specific User-Agent",
+            },
         ],
     },
     {
         "title": "Web UI",
         "fields": [
-            {"key": "WEB_LIST_FREQUENCY", "env": "STRMNTR_LIST_FREQ", "type": "int", "label": "Main list refresh (seconds)"},
-            {"key": "WEB_STATUS_FREQUENCY", "env": "STRMNTR_STATUS_FREQ", "type": "int", "label": "Recording page status refresh (seconds)"},
-            {"key": "WEB_THEATER_MODE", "env": "STRMNTR_THEATER_MODE", "type": "bool", "label": "Theater mode"},
-            {"key": "WEB_CONFIRM_DELETES", "env": "STRMNTR_CONFIRM_DEL", "type": "str", "label": 'Confirm deletes (empty / MOBILE / "true")'},
-            {"key": "WEBSERVER_PASSWORD", "env": "STRMNTR_PASSWORD", "type": "password", "label": "Web password (empty = no login)"},
+            {
+                "key": "WEB_LIST_FREQUENCY",
+                "env": "STRMNTR_LIST_FREQ",
+                "type": "int",
+                "label": "Main list refresh (seconds)",
+            },
+            {
+                "key": "WEB_STATUS_FREQUENCY",
+                "env": "STRMNTR_STATUS_FREQ",
+                "type": "int",
+                "label": "Recording page status refresh (seconds)",
+            },
+            {
+                "key": "WEB_THEATER_MODE",
+                "env": "STRMNTR_THEATER_MODE",
+                "type": "bool",
+                "label": "Theater mode",
+            },
+            {
+                "key": "WEB_CONFIRM_DELETES",
+                "env": "STRMNTR_CONFIRM_DEL",
+                "type": "str",
+                "label": 'Confirm deletes (empty / MOBILE / "true")',
+            },
+            {
+                "key": "WEBSERVER_PASSWORD",
+                "env": "STRMNTR_PASSWORD",
+                "type": "password",
+                "label": "Web password (empty = no login)",
+            },
+            {
+                "key": "BULK_ADD_DELAY_SECONDS",
+                "env": "STRMNTR_BULK_ADD_DELAY",
+                "type": "float",
+                "label": "Bulk add delay (seconds between each username)",
+            },
         ],
     },
     {
         "title": "Other",
         "fields": [
-            {"key": "MIN_FREE_DISK_PERCENT", "env": "STRMNTR_MIN_FREE_SPACE", "type": "float", "label": "Minimum free disk space (%)"},
-            {"key": "DEBUG", "env": "STRMNTR_DEBUG", "type": "bool", "label": "Debug logging"},
+            {
+                "key": "MIN_FREE_DISK_PERCENT",
+                "env": "STRMNTR_MIN_FREE_SPACE",
+                "type": "float",
+                "label": "Minimum free disk space (%)",
+            },
+            {
+                "key": "DEBUG",
+                "env": "STRMNTR_DEBUG",
+                "type": "bool",
+                "label": "Debug logging",
+            },
         ],
     },
 ]
@@ -215,11 +327,21 @@ def apply_runtime_settings() -> None:
     """Load web_settings.json and refresh all module-level settings (except fixed path/bind keys)."""
     global DOWNLOADS_DIR, DATABASE_URL, MIN_FREE_DISK_PERCENT, DEBUG
     global HTTP_USER_AGENT, CHB_PROXY_TEST_URL, CHB_CF_CLEARANCE, CHB_USER_AGENT
-    global REQUESTS_HTTP_PROXY, REQUESTS_NO_PROXY, REQUESTS_PROXIES
+    global \
+        REQUESTS_HTTP_PROXY, \
+        REQUESTS_HTTP_PROXY_ALIAS, \
+        REQUESTS_NO_PROXY, \
+        REQUESTS_PROXIES
     global FFMPEG_PATH, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE, CONTAINER
     global VR_FORMAT_SUFFIX, FFMPEG_READRATE, SEGMENT_TIME
     global WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_SKIN
-    global WEB_LIST_FREQUENCY, WEB_STATUS_FREQUENCY, WEB_THEATER_MODE, WEB_CONFIRM_DELETES, WEBSERVER_PASSWORD
+    global \
+        WEB_LIST_FREQUENCY, \
+        WEB_STATUS_FREQUENCY, \
+        WEB_THEATER_MODE, \
+        WEB_CONFIRM_DELETES, \
+        WEBSERVER_PASSWORD
+    global BULK_ADD_DELAY_SECONDS
 
     DOWNLOADS_DIR = env.str("STRMNTR_DOWNLOAD_DIR", "downloads")
     DATABASE_URL = env.str(
@@ -230,7 +352,9 @@ def apply_runtime_settings() -> None:
     WEBSERVER_PORT = env.int("STRMNTR_PORT", 5000)
     WEBSERVER_SKIN = env.str("STRMNTR_SKIN", "truck-kun")
 
-    MIN_FREE_DISK_PERCENT = _pick_float("STRMNTR_MIN_FREE_SPACE", "MIN_FREE_DISK_PERCENT", 5.0)
+    MIN_FREE_DISK_PERCENT = _pick_float(
+        "STRMNTR_MIN_FREE_SPACE", "MIN_FREE_DISK_PERCENT", 5.0
+    )
     DEBUG = _pick_bool("STRMNTR_DEBUG", "DEBUG", False)
     HTTP_USER_AGENT = _pick_str(
         "STRMNTR_USER_AGENT",
@@ -245,6 +369,11 @@ def apply_runtime_settings() -> None:
     CHB_CF_CLEARANCE = _pick_str("STRMNTR_CB_CF_CLEARANCE", "CHB_CF_CLEARANCE", "")
     CHB_USER_AGENT = _pick_str("STRMNTR_CB_USER_AGENT", "CHB_USER_AGENT", "")
     REQUESTS_HTTP_PROXY = _pick_str("STRMNTR_HTTP_PROXY", "REQUESTS_HTTP_PROXY", "")
+    REQUESTS_HTTP_PROXY_ALIAS = _pick_str(
+        "STRMNTR_ALL_PROXY", "REQUESTS_HTTP_PROXY_ALIAS", ""
+    )
+    if not REQUESTS_HTTP_PROXY and REQUESTS_HTTP_PROXY_ALIAS:
+        REQUESTS_HTTP_PROXY = REQUESTS_HTTP_PROXY_ALIAS
     REQUESTS_NO_PROXY = _pick_str("STRMNTR_NO_PROXY", "REQUESTS_NO_PROXY", "")
     REQUESTS_PROXIES = _rebuild_proxy_env(REQUESTS_HTTP_PROXY, REQUESTS_NO_PROXY)
 
@@ -265,8 +394,13 @@ def apply_runtime_settings() -> None:
     WEB_LIST_FREQUENCY = _pick_int("STRMNTR_LIST_FREQ", "WEB_LIST_FREQUENCY", 30)
     WEB_STATUS_FREQUENCY = _pick_int("STRMNTR_STATUS_FREQ", "WEB_STATUS_FREQUENCY", 5)
     WEB_THEATER_MODE = _pick_bool("STRMNTR_THEATER_MODE", "WEB_THEATER_MODE", False)
-    WEB_CONFIRM_DELETES = _pick_str("STRMNTR_CONFIRM_DEL", "WEB_CONFIRM_DELETES", "MOBILE")
+    WEB_CONFIRM_DELETES = _pick_str(
+        "STRMNTR_CONFIRM_DEL", "WEB_CONFIRM_DELETES", "MOBILE"
+    )
     WEBSERVER_PASSWORD = _pick_str("STRMNTR_PASSWORD", "WEBSERVER_PASSWORD", "admin")
+    BULK_ADD_DELAY_SECONDS = max(
+        0.0, _pick_float("STRMNTR_BULK_ADD_DELAY", "BULK_ADD_DELAY_SECONDS", 0.2)
+    )
 
 
 def reload_runtime_settings() -> None:
@@ -291,6 +425,8 @@ def settings_form_context() -> list[dict[str, Any]]:
                 display = ""
             else:
                 display = val
+            if key == "CHB_CF_CLEARANCE":
+                locked = False
             fields_out.append({**field, "value": display, "locked": locked})
         groups_out.append({"title": group["title"], "fields": fields_out})
     return groups_out
@@ -304,7 +440,7 @@ def save_settings_from_form(form: Any) -> tuple[bool, str]:
         for field in group["fields"]:
             key = field["env"]
             py_key = field["key"]
-            if _env_set(key):
+            if _env_set(key) and py_key != "CHB_CF_CLEARANCE":
                 continue
             ftype = field["type"]
             raw = form.get(py_key)
@@ -326,7 +462,12 @@ def save_settings_from_form(form: Any) -> tuple[bool, str]:
                 s = str(raw).strip()
                 new_file[py_key] = None if s == "" else s
             elif ftype == "password":
-                if str(form.get("WEBSERVER_PASSWORD_CLEAR", "")).lower() in ("1", "true", "on", "yes"):
+                if str(form.get("WEBSERVER_PASSWORD_CLEAR", "")).lower() in (
+                    "1",
+                    "true",
+                    "on",
+                    "yes",
+                ):
                     new_file[py_key] = ""
                 elif str(raw).strip() != "":
                     new_file[py_key] = str(raw)
@@ -341,7 +482,15 @@ def save_settings_from_form(form: Any) -> tuple[bool, str]:
     try:
         WEB_SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
         with open(WEB_SETTINGS_PATH, "w", encoding="utf-8") as fp:
-            json.dump({k: new_file[k] for k in sorted(new_file) if k in _FILE_KEYS}, fp, indent=2)
+            json.dump(
+                {
+                    k: new_file[k]
+                    for k in sorted(new_file)
+                    if k in _FILE_KEYS and k != "REQUESTS_HTTP_PROXY_ALIAS"
+                },
+                fp,
+                indent=2,
+            )
     except OSError as e:
         return False, str(e)
     reload_runtime_settings()

@@ -1,0 +1,23 @@
+{% extends "layout.html.jinja" %}
+{% block title %}StreaMonitor — Bulk add{% endblock %}
+{% block content %}
+<div class="bulk-add-page">
+    <div class="title-container">
+        <h1>Bulk add <a class="settings-link" href="/">List</a></h1>
+        <div class="disk-usage">
+            <span class="du-label">
+                <span class="du-label-free">Free:</span>
+                <span class="du-label-free">Total:</span>
+            </span>
+            <span class="du-space">
+                <span class="du-space-free">{{ free_space }}</span>
+                <span class="du-space-total">{{ total_space }}</span>
+            </span>
+            <span class="du-percent-free">{{ percentage_free }}%</span>
+        </div>
+    </div>
+    <div id="bulk-add-root">
+        {% include 'bulk_add_fragment.html.jinja' %}
+    </div>
+</div>
+{% endblock %}
