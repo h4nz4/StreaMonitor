@@ -55,6 +55,9 @@ def getVideoFfmpeg(self, url, filename):
     if FFMPEG_READRATE:
         cmd.extend(["-readrate", f"{FFMPEG_READRATE!s}"])
 
+    if audio_url:
+        cmd.extend(["-copyts", "-start_at_zero"])
+
     cmd.extend(
         [
             "-max_reload",
@@ -68,7 +71,10 @@ def getVideoFfmpeg(self, url, filename):
         ]
     )
     if audio_url:
-        cmd.extend(["-i", audio_url, "-map", "0:v:0", "-map", "1:a:0"])
+        cmd.extend(
+            ["-thread_queue_size", "64", "-i", audio_url,
+             "-map", "0:v:0", "-map", "1:a:0"]
+        )
     else:
         # Default mapping when there is only one input:
         # Map all video and audio streams from the first input safely.
