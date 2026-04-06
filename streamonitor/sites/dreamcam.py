@@ -5,21 +5,30 @@ from streamonitor.enums import Status
 
 
 class DreamCam(Bot):
-    site = 'DreamCam'
-    siteslug = 'DC'
+    site = "DreamCam"
+    siteslug = "DC"
 
-    _stream_type = 'video2D'
+    _stream_type = "video2D"
 
     def getVideoUrl(self):
-        for stream in self.lastInfo['streams']:
-            if stream['streamType'] == self._stream_type:
-                if stream['status'] == 'online':
-                    return stream['url']
+        for stream in self.lastInfo["streams"]:
+            if stream["streamType"] == self._stream_type:
+                if stream["status"] == "online":
+                    return stream["url"]
         return None
 
     def getStatus(self):
-        r = self.session.get('https://bss.dreamcamtrue.com/api/clients/v1/broadcasts/models/' + self.username, headers=self.headers)
+        try:
+            r = self.session.get(
+                "https://bss.dreamcamtrue.com/api/clients/v1/broadcasts/models/"
+                + self.username,
+                headers=self.headers,
+            )
+        except Exception as e:
+            self.handle_status_error(e, "getStatus")
+            return Status.UNKNOWN
         if r.status_code != 200:
+            self.log_response_debug(r, "getStatus")
             return Status.UNKNOWN
 
         self.lastInfo = r.json()
@@ -30,5 +39,5 @@ class DreamCam(Bot):
             return Status.PRIVATE
         if self.lastInfo["broadcastStatus"] in ["away", "offline"]:
             return Status.OFFLINE
-        self.logger.warn(f'Got unknown status: {self.lastInfo["broadcastStatus"]}')
+        self.logger.warn(f"Got unknown status: {self.lastInfo['broadcastStatus']}")
         return Status.UNKNOWN

@@ -4,16 +4,16 @@ from streamonitor.enums import Status
 
 
 class Cam4(Bot):
-    site = 'Cam4'
-    siteslug = 'C4'
+    site = "Cam4"
+    siteslug = "C4"
 
     def getWebsiteURL(self):
         return "https://hu.cam4.com/" + self.username
-    
+
     def getVideoUrl(self):
-        if 'cdnURL' not in self.lastInfo:
+        if "cdnURL" not in self.lastInfo:
             return None
-        return self.getWantedResolutionPlaylist(self.lastInfo['cdnURL'])
+        return self.getWantedResolutionPlaylist(self.lastInfo["cdnURL"])
 
     def getStatus(self):
         headers = self.headers | {
@@ -21,28 +21,55 @@ class Cam4(Bot):
         }
 
         if self.sc == Status.NOTRUNNING:
-            r = self.session.get(f'https://hu.cam4.com/rest/v1.0/profile/{self.username}/info', headers=headers)
+            try:
+                r = self.session.get(
+                    f"https://hu.cam4.com/rest/v1.0/profile/{self.username}/info",
+                    headers=headers,
+                )
+            except Exception as e:
+                self.handle_status_error(e, "getStatus")
+                return Status.UNKNOWN
             if r.status_code == 403:
+                self.log_response_debug(r, "getStatus")
                 return Status.RESTRICTED
             elif r.status_code != 200:
+                self.log_response_debug(r, "getStatus")
                 return Status.NOTEXIST
 
             r = r.json()
-            if not r['online']:
+            if not r["online"]:
                 return Status.OFFLINE
 
-        r = self.session.get(f'https://webchat.cam4.com/requestAccess?roomname={self.username}', headers=headers)
+        try:
+            r = self.session.get(
+                f"https://webchat.cam4.com/requestAccess?roomname={self.username}",
+                headers=headers,
+            )
+        except Exception as e:
+            self.handle_status_error(e, "getStatus")
+            return Status.UNKNOWN
         if r.status_code != 200:
+            self.log_response_debug(r, "getStatus")
             return Status.UNKNOWN
         r = r.json()
-        if r.get('privateStream', False):
+        if r.get("privateStream", False):
             return Status.PRIVATE
 
-        r = self.session.get(f'https://hu.cam4.com/rest/v1.0/profile/{self.username}/streamInfo', headers=headers)
+        try:
+            r = self.session.get(
+                f"https://hu.cam4.com/rest/v1.0/profile/{self.username}/streamInfo",
+                headers=headers,
+            )
+        except Exception as e:
+            self.handle_status_error(e, "getStatus")
+            return Status.UNKNOWN
         if r.status_code == 204:
+            self.log_response_debug(r, "getStatus")
             return Status.OFFLINE
         elif r.status_code == 200:
             self.lastInfo = r.json()
             return Status.PUBLIC
+        else:
+            self.log_response_debug(r, "getStatus")
 
         return Status.UNKNOWN

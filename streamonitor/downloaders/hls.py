@@ -4,7 +4,8 @@ import subprocess
 from threading import Thread
 from ffmpy import FFmpeg, FFRuntimeError
 from time import sleep
-from parameters import DEBUG, CONTAINER, SEGMENT_TIME, FFMPEG_PATH
+from parameters import DEBUG, CONTAINER, SEGMENT_TIME, FFMPEG_PATH, USE_CLOUDSCRAPER
+from streamonitor.http_session import create_http_session
 
 _http_lib = None
 if not _http_lib:
@@ -27,7 +28,9 @@ def getVideoNativeHLS(self, url, filename, m3u_processor=None):
     self.stopDownloadFlag = False
     error = False
     tmpfilename = filename[:-len('.' + CONTAINER)] + '.tmp.ts'
-    session = requests.Session()
+    session = create_http_session(
+        USE_CLOUDSCRAPER and type(self).use_cloudscraper
+    )
 
     def execute():
         nonlocal error

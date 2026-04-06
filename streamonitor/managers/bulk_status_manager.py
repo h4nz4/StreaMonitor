@@ -1,8 +1,8 @@
 from time import sleep
 
-import requests
-
+from parameters import USE_CLOUDSCRAPER
 from streamonitor.bot import LOADED_SITES
+from streamonitor.http_session import create_http_session
 from streamonitor.manager import Manager
 from streamonitor.clean_exit import CleanExit
 import streamonitor.log as log
@@ -18,7 +18,8 @@ class BulkStatusManager(Manager):
         bot_sessions = {}
 
         for bot in bulk_bots:
-            bot_sessions[bot] = requests.Session()
+            use_cs = USE_CLOUDSCRAPER and bot.use_cloudscraper
+            bot_sessions[bot] = create_http_session(use_cs)
 
         while True:
             bot_bulk = {}
@@ -32,7 +33,7 @@ class BulkStatusManager(Manager):
             for bot_class, streamers in bot_bulk.items():
                 try:
                     self.logger.debug('Get ' + str(bot_class.site) + ' bulk status')
-                    bot_class.getStatusBulk(streamers)
+                    bot_class.getStatusBulk(streamers, bot_sessions[bot_class])
                 except Exception as e:
                     self.logger.error(f"Error in bulk status check for {bot_class.site}: {e}")
             sleep(10)
