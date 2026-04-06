@@ -1,7 +1,9 @@
 import errno
 import os
+import re
 import subprocess
 import sys
+from datetime import datetime
 
 import requests.cookies
 from threading import Thread
@@ -13,6 +15,32 @@ from parameters import (
     FFMPEG_READRATE,
     CAPTURE_TS,
 )
+
+
+def _get_first_program_date_time(session, url, headers):
+    """Fetch an HLS playlist and return the first EXT-X-PROGRAM-DATE-TIME."""
+    try:
+        resp = session.get(url, headers=headers, timeout=10)
+        match = re.search(r"#EXT-X-PROGRAM-DATE-TIME:(.+)", resp.text)
+        if match:
+            return datetime.fromisoformat(match.group(1).strip())
+    except Exception:
+        pass
+    return None
+
+
+def _compute_av_offset(session, video_url, audio_url, headers):
+    """Return the seconds audio leads video based on PROGRAM-DATE-TIME tags.
+
+    A positive value means audio content starts later in real time,
+    so it needs to be delayed (via -itsoffset) to align with video.
+    Returns 0.0 if the offset can't be determined.
+    """
+    video_pdt = _get_first_program_date_time(session, video_url, headers)
+    audio_pdt = _get_first_program_date_time(session, audio_url, headers)
+    if video_pdt and audio_pdt:
+        return (audio_pdt - video_pdt).total_seconds()
+    return 0.0
 
 
 def getVideoFfmpeg(self, url, filename):
@@ -55,39 +83,34 @@ def getVideoFfmpeg(self, url, filename):
     if FFMPEG_READRATE:
         cmd.extend(["-readrate", f"{FFMPEG_READRATE!s}"])
 
-    if audio_url:
-        cmd.extend(["-copyts", "-start_at_zero"])
+    hls_opts = ["-max_reload", "20", "-seg_max_retry", "20", "-m3u8_hold_counters", "20"]
 
-    cmd.extend(
-        [
-            "-max_reload",
-            "20",
-            "-seg_max_retry",
-            "20",
-            "-m3u8_hold_counters",
-            "20",
-            "-i",
-            video_url,
-        ]
-    )
     if audio_url:
-        cmd.extend(
-            ["-thread_queue_size", "64", "-i", audio_url,
-             "-map", "0:v:0", "-map", "1:a:0"]
-        )
+        av_offset = _compute_av_offset(self.session, video_url, audio_url, self.headers)
+        if hasattr(self, "logger"):
+            self.logger.debug(f"A/V offset from PROGRAM-DATE-TIME: {av_offset:.3f}s")
+
+        if av_offset > 0:
+            cmd.extend(["-thread_queue_size", "64"])
+            cmd.extend(hls_opts + ["-i", video_url])
+            cmd.extend(["-itsoffset", f"{av_offset:.3f}", "-thread_queue_size", "64"])
+            cmd.extend(["-i", audio_url])
+        elif av_offset < 0:
+            cmd.extend(["-itsoffset", f"{-av_offset:.3f}", "-thread_queue_size", "64"])
+            cmd.extend(hls_opts + ["-i", video_url])
+            cmd.extend(["-thread_queue_size", "64"])
+            cmd.extend(["-i", audio_url])
+        else:
+            cmd.extend(["-thread_queue_size", "64"])
+            cmd.extend(hls_opts + ["-i", video_url])
+            cmd.extend(["-thread_queue_size", "64"])
+            cmd.extend(["-i", audio_url])
+        cmd.extend(["-map", "0:v:0", "-map", "1:a:0"])
     else:
-        # Default mapping when there is only one input:
-        # Map all video and audio streams from the first input safely.
+        cmd.extend(hls_opts + ["-i", video_url])
         cmd.extend(["-map", "0:v?", "-map", "0:a?"])
 
-    cmd.extend(
-        [
-            "-c:a",
-            "copy",
-            "-c:v",
-            "copy",
-        ]
-    )
+    cmd.extend(["-c:v", "copy", "-c:a", "copy"])
 
     suffix = ""
     if hasattr(self, "filename_extra_suffix"):
@@ -97,7 +120,10 @@ def getVideoFfmpeg(self, url, filename):
     capture_ts = getattr(
         self, "capture_ts", CAPTURE_TS if CAPTURE_TS is not None else False
     )
-    output_ext = "ts" if capture_ts else CONTAINER
+    if capture_ts:
+        output_ext = "ts"
+    else:
+        output_ext = CONTAINER
 
     if SEGMENT_TIME is not None:
         username = filename.rsplit("-", maxsplit=2)[0]
